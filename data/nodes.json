@@ -1,0 +1,474 @@
+[
+  {
+    "properties": { "name": "penstock_AB_head_001", "elev": 2111.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.284787006662668, 37.813166924753418]
+    }
+  },
+  {
+    "properties": { "name": "penstock_CD_head_001", "elev": 2111.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.284808458226479, 37.813135510723612]
+    }
+  },
+  {
+    "properties": { "name": "penstock_AB_head_002", "elev": 2071.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.285490335020754, 37.813452004803104]
+    }
+  },
+  {
+    "properties": { "name": "penstock_CD_head_002", "elev": 2071.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.285510386458625, 37.813420942404022]
+    }
+  },
+  {
+    "properties": { "name": "penstock_AB_head_003", "elev": 2068.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.286008176174292, 37.813661900629455]
+    }
+  },
+  {
+    "properties": { "name": "penstock_CD_head_003", "elev": 2068.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.286016547516283, 37.813626766751838]
+    }
+  },
+  {
+    "properties": { "name": "penstock_AB_head_004", "elev": 2052.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.288121678420296, 37.81357695928493]
+    }
+  },
+  {
+    "properties": { "name": "penstock_CD_head_004", "elev": 2052.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.288124032860225, 37.813542238707207]
+    }
+  },
+  {
+    "properties": { "name": "penstock_AB_bifurcation", "elev": 1933.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.28929863678205, 37.813645367042071]
+    }
+  },
+  {
+    "properties": { "name": "penstock_CD_bifurcation", "elev": 1933.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.289265151414142, 37.813592046197549]
+    }
+  },
+  {
+    "properties": { "name": "penstock_A_001", "elev": 1829.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.290009499540446, 37.813363843725156]
+    }
+  },
+  {
+    "properties": { "name": "penstock_B_001", "elev": 1829.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.289992859397699, 37.813340133589492]
+    }
+  },
+  {
+    "properties": { "name": "penstock_C_001", "elev": 1829.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.289976733485432, 37.813315634153902]
+    }
+  },
+  {
+    "properties": { "name": "penstock_D_001", "elev": 1829.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.289961110946038, 37.813289252385367]
+    }
+  },
+  {
+    "properties": { "name": "penstock_A_002", "elev": 1669.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.29093537413911, 37.812975325766395]
+    }
+  },
+  {
+    "properties": { "name": "penstock_B_002", "elev": 1669.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.290918991161263, 37.812951377674509]
+    }
+  },
+  {
+    "properties": { "name": "penstock_C_002", "elev": 1669.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.290903491098334, 37.812926577053361]
+    }
+  },
+  {
+    "properties": { "name": "penstock_D_002", "elev": 1669.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.29088657571431, 37.812900111746039]
+    }
+  },
+  {
+    "properties": { "name": "penstock_B_003", "elev": 1549.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.291838660537124, 37.812576485365319]
+    }
+  },
+  {
+    "properties": { "name": "penstock_A_003", "elev": 1549.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.291854512130982, 37.812596923370542]
+    }
+  },
+  {
+    "properties": { "name": "penstock_C_003", "elev": 1549.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.291823642807429, 37.812552695378038]
+    }
+  },
+  {
+    "properties": { "name": "penstock_D_003", "elev": 1549.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.291807537784265, 37.812527571696428]
+    }
+  },
+  {
+    "properties": { "name": "penstock_A_004", "elev": 1454.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.292326969744138, 37.812394383748448]
+    }
+  },
+  {
+    "properties": { "name": "penstock_B_004", "elev": 1454.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.29230839582911, 37.812368136226148]
+    }
+  },
+  {
+    "properties": { "name": "penstock_C_004", "elev": 1454.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.292291391540701, 37.812344162103138]
+    }
+  },
+  {
+    "properties": { "name": "penstock_D_004", "elev": 1454.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.292277788109999, 37.812321634687343]
+    }
+  },
+  {
+    "properties": { "name": "penstock_A_005", "elev": 1427.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.293202559794551, 37.812062878923179]
+    }
+  },
+  {
+    "properties": { "name": "penstock_B_005", "elev": 1427.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.293181631439595, 37.81203642460865]
+    }
+  },
+  {
+    "properties": { "name": "penstock_C_005", "elev": 1427.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.293162795920153, 37.812013690424536]
+    }
+  },
+  {
+    "properties": { "name": "penstock_D_005", "elev": 1427.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.293145006818435, 37.811991369582408]
+    }
+  },
+  {
+    "properties": { "name": "penstock_A_006", "elev": 1394.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.293515177096722, 37.811879971945366]
+    }
+  },
+  {
+    "properties": { "name": "penstock_B_006", "elev": 1394.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.293496341577253, 37.811856617688463]
+    }
+  },
+  {
+    "properties": { "name": "penstock_C_006", "elev": 1394.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.293475413222296, 37.811833676774036]
+    }
+  },
+  {
+    "properties": { "name": "penstock_D_006", "elev": 1394.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.293452915240721, 37.811810529177492]
+    }
+  },
+  {
+    "properties": { "name": "penstock_A_007", "elev": 1301.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.294073179360737, 37.811539991104809]
+    }
+  },
+  {
+    "properties": { "name": "penstock_B_007", "elev": 1301.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.294053297423503, 37.811517050092]
+    }
+  },
+  {
+    "properties": { "name": "penstock_C_007", "elev": 1301.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.294032369068574, 37.811494729099742]
+    }
+  },
+  {
+    "properties": { "name": "penstock_D_007", "elev": 1301.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.294008563064807, 37.811472614776683]
+    }
+  },
+  {
+    "properties": { "name": "penstock_A_008", "elev": 1174.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.29468638016094, 37.811169627216039]
+    }
+  },
+  {
+    "properties": { "name": "penstock_B_008", "elev": 1174.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.294668867885491, 37.811142693604467]
+    }
+  },
+  {
+    "properties": { "name": "penstock_C_008", "elev": 1174.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.294651355973727, 37.811115760542442]
+    }
+  },
+  {
+    "properties": { "name": "penstock_D_008", "elev": 1174.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.29463574982509, 37.81109160291625]
+    }
+  },
+  {
+    "properties": { "name": "penstock_A_009", "elev": 1136.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.294920254527568, 37.811113411106234]
+    }
+  },
+  {
+    "properties": { "name": "penstock_B_009", "elev": 1136.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.294909587873136, 37.811084904691022]
+    }
+  },
+  {
+    "properties": { "name": "penstock_C_009", "elev": 1136.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.29490026556492, 37.811059991004456]
+    }
+  },
+  {
+    "properties": { "name": "penstock_D_009", "elev": 1136.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.294890273588535, 37.811033287633414]
+    }
+  },
+  {
+    "properties": { "name": "penstock_A_010", "elev": 1101.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.295930047654139, 37.810920787934876]
+    }
+  },
+  {
+    "properties": { "name": "penstock_C_010", "elev": 1101.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.295909119299196, 37.810866225056806]
+    }
+  },
+  {
+    "properties": { "name": "penstock_B_010", "elev": 1101.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.295919060267792, 37.810894333211145]
+    }
+  },
+  {
+    "properties": { "name": "penstock_D_010", "elev": 1101.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.295898655121704, 37.810838530247196]
+    }
+  },
+  {
+    "properties": { "name": "penstock_AB_collection", "elev": 1079.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.296138258564483, 37.81086249947419]
+    }
+  },
+  {
+    "properties": { "name": "penstock_CD_collection", "elev": 1074.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.296191625869753, 37.810791402326394]
+    }
+  },
+  {
+    "properties": { "name": "penstock_B_009.2", "elev": 1106.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.29586664127892, 37.810903917882641]
+    }
+  },
+  {
+    "properties": { "name": "penstock_C_009.2", "elev": 1106.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.295856634909214, 37.810877178971154]
+    }
+  },
+  {
+    "properties": { "name": "priest_inlet_001", "elev": 2150.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.268996693651744, 37.803337427207907]
+    }
+  },
+  {
+    "properties": { "name": "penstock_B_009.1", "elev": 1111.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.295821672231824, 37.81091323397721]
+    }
+  },
+  {
+    "properties": { "name": "penstock_C_009.1", "elev": 1111.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.295812401624573, 37.810886901965532]
+    }
+  },
+  {
+    "properties": { "name": "main_penstock_bifurcation", "elev": 2138.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.284076401450434, 37.812790484574734]
+    }
+  },
+  {
+    "properties": { "name": "overflow", "elev": 2138.0 },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.28266507862682, 37.811975023580807]
+    }
+  }
+]

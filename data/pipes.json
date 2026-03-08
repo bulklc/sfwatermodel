@@ -1,0 +1,1579 @@
+[
+  {
+    "properties": {
+      "size": 120.0,
+      "type": "tunnel",
+      "name": "priest_inlet_sluice_002_A",
+      "length": 8.671,
+      "us_node": "priest_inlet_001",
+      "ds_node": "priest_inlet_002"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.268976863096512, 37.803355299627817],
+          [-120.268966947818896, 37.803364235836156]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 120.0,
+      "type": "tunnel",
+      "name": "priest_inlet_sluice_001_A",
+      "length": 8.671,
+      "us_node": "priest_inlet_001",
+      "ds_node": "priest_inlet_002"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.268946476106095, 37.803335243395004],
+          [-120.268936560828465, 37.803344179605759]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 120.0,
+      "type": "tunnel",
+      "name": "tunnel_001",
+      "length": 5048.569,
+      "us_node": "priest_inlet_001",
+      "ds_node": "overflow"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.268996693651744, 37.803337427207907],
+          [-120.28266507862682, 37.811975023580807]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 96.0,
+      "type": "WSP",
+      "name": "penstock_AB_head_002",
+      "length": 172.297,
+      "us_node": "penstock_AB_head_001",
+      "ds_node": "penstock_AB_head_valve_001"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.284787006662668, 37.813166924753418],
+          [-120.284276125898074, 37.812922793989195]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 96.0,
+      "type": "WSP",
+      "name": "penstock_CD_head_002",
+      "length": 169.958,
+      "us_node": "penstock_CD_head_001",
+      "ds_node": "penstock_CD_head_valve_001"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.284808458226479, 37.813135510723612],
+          [-120.284328512186562, 37.812865597522013]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 96.0,
+      "type": "WSP",
+      "name": "penstock_AB_head_003",
+      "length": 228.171,
+      "us_node": "penstock_AB_head_001",
+      "ds_node": "penstock_AB_head_002"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.284787006662668, 37.813166924753418],
+          [-120.285490335020754, 37.813452004803104]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 96.0,
+      "type": "WSP",
+      "name": "penstock_CD_head_003",
+      "length": 227.869,
+      "us_node": "penstock_CD_head_001",
+      "ds_node": "penstock_CD_head_002"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.284808458226479, 37.813135510723612],
+          [-120.285510386458625, 37.813420942404022]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 96.0,
+      "type": "WSP",
+      "name": "penstock_AB_head_004",
+      "length": 167.995,
+      "us_node": "penstock_AB_head_002",
+      "ds_node": "penstock_AB_head_003"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.285490335020754, 37.813452004803104],
+          [-120.286008176174292, 37.813661900629455]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 96.0,
+      "type": "WSP",
+      "name": "penstock_CD_head_004",
+      "length": 164.316,
+      "us_node": "penstock_CD_head_002",
+      "ds_node": "penstock_CD_head_003"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.285510386458625, 37.813420942404022],
+          [-120.286016547516283, 37.813626766751838]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 96.0,
+      "type": "WSP",
+      "name": "penstock_AB_head_005",
+      "length": 611.357,
+      "us_node": "penstock_AB_head_003",
+      "ds_node": "penstock_AB_head_004"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.286008176174292, 37.813661900629455],
+          [-120.288121678420296, 37.81357695928493]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 96.0,
+      "type": "WSP",
+      "name": "penstock_CD_head_005",
+      "length": 609.614,
+      "us_node": "penstock_CD_head_004",
+      "ds_node": "penstock_CD_head_003"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.288124032860225, 37.813542238707207],
+          [-120.286016547516283, 37.813626766751838]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 96.0,
+      "type": "WSP",
+      "name": "penstock_AB_head_006",
+      "length": 279.569,
+      "us_node": "penstock_AB_head_004",
+      "ds_node": "penstock_AB_head_valve_002"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.288121678420296, 37.81357695928493],
+          [-120.289074695209152, 37.813710325935602]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 96.0,
+      "type": "WSP",
+      "name": "penstock_CD_head_00",
+      "length": 265.471,
+      "us_node": "penstock_CD_head_004",
+      "ds_node": "penstock_CD_head_valve_002"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.288124032860225, 37.813542238707207],
+          [-120.289029077935425, 37.813668475312816]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_A_001",
+      "length": 230.612,
+      "us_node": "penstock_AB_bifurcation",
+      "ds_node": "penstock_A_001"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.28929863678205, 37.813645367042071],
+          [-120.289330381867217, 37.813645830434766],
+          [-120.290009499540446, 37.813363843725156]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_B_001",
+      "length": 231.062,
+      "us_node": "penstock_AB_bifurcation",
+      "ds_node": "penstock_B_001"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.28929863678205, 37.813645367042071],
+          [-120.289310271026125, 37.813624362599505],
+          [-120.289992859397699, 37.813340133589492]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_C_001",
+      "length": 230.497,
+      "us_node": "penstock_CD_bifurcation",
+      "ds_node": "penstock_C_001"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.289265151414142, 37.813592046197549],
+          [-120.289300997353436, 37.813594771658316],
+          [-120.289976733485432, 37.813315634153902]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_D_001",
+      "length": 230.626,
+      "us_node": "penstock_CD_bifurcation",
+      "ds_node": "penstock_D_001"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.289265151414142, 37.813592046197549],
+          [-120.289280002180433, 37.813571452235415],
+          [-120.289961110946038, 37.813289252385367]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_A_002",
+      "length": 302.591,
+      "us_node": "penstock_A_001",
+      "ds_node": "penstock_A_002"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.290009499540446, 37.813363843725156],
+          [-120.29093537413911, 37.812975325766395]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_B_002",
+      "length": 302.698,
+      "us_node": "penstock_B_002",
+      "ds_node": "penstock_B_001"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.290918991161263, 37.812951377674509],
+          [-120.289992859397699, 37.813340133589492]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_C_002",
+      "length": 302.909,
+      "us_node": "penstock_C_002",
+      "ds_node": "penstock_C_001"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.290903491098334, 37.812926577053361],
+          [-120.289976733485432, 37.813315634153902]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_D_002",
+      "length": 302.593,
+      "us_node": "penstock_D_001",
+      "ds_node": "penstock_D_002"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.289961110946038, 37.813289252385367],
+          [-120.29088657571431, 37.812900111746039]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_A_003",
+      "length": 299.159,
+      "us_node": "penstock_A_003",
+      "ds_node": "penstock_A_002"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.291854512130982, 37.812596923370542],
+          [-120.29093537413911, 37.812975325766395]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_B_003",
+      "length": 298.709,
+      "us_node": "penstock_B_002",
+      "ds_node": "penstock_B_003"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.290918991161263, 37.812951377674509],
+          [-120.291838660537124, 37.812576485365319]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_C_003",
+      "length": 298.665,
+      "us_node": "penstock_C_003",
+      "ds_node": "penstock_C_002"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.291823642807429, 37.812552695378038],
+          [-120.290903491098334, 37.812926577053361]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_D_003",
+      "length": 298.651,
+      "us_node": "penstock_D_002",
+      "ds_node": "penstock_D_003"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.29088657571431, 37.812900111746039],
+          [-120.291807537784265, 37.812527571696428]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_A_004",
+      "length": 155.144,
+      "us_node": "penstock_A_004",
+      "ds_node": "penstock_A_003"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.292326969744138, 37.812394383748448],
+          [-120.291854512130982, 37.812596923370542]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_B_004",
+      "length": 155.474,
+      "us_node": "penstock_B_003",
+      "ds_node": "penstock_B_004"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.291838660537124, 37.812576485365319],
+          [-120.29230839582911, 37.812368136226148]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_C_004",
+      "length": 155.006,
+      "us_node": "penstock_C_004",
+      "ds_node": "penstock_C_003"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.292291391540701, 37.812344162103138],
+          [-120.291823642807429, 37.812552695378038]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_D_004",
+      "length": 155.177,
+      "us_node": "penstock_D_003",
+      "ds_node": "penstock_D_004"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.291807537784265, 37.812527571696428],
+          [-120.292277788109999, 37.812321634687343]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_A_005",
+      "length": 280.284,
+      "us_node": "penstock_A_005",
+      "ds_node": "penstock_A_004"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.293202559794551, 37.812062878923179],
+          [-120.292326969744138, 37.812394383748448]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_B_005",
+      "length": 279.703,
+      "us_node": "penstock_B_004",
+      "ds_node": "penstock_B_005"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.29230839582911, 37.812368136226148],
+          [-120.293181631439595, 37.81203642460865]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_C_005",
+      "length": 279.031,
+      "us_node": "penstock_C_005",
+      "ds_node": "penstock_C_004"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.293162795920153, 37.812013690424536],
+          [-120.292291391540701, 37.812344162103138]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_D_005",
+      "length": 277.908,
+      "us_node": "penstock_D_004",
+      "ds_node": "penstock_D_005"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.292277788109999, 37.812321634687343],
+          [-120.293145006818435, 37.811991369582408]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_A_006",
+      "length": 112.219,
+      "us_node": "penstock_A_006",
+      "ds_node": "penstock_A_005"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.293515177096722, 37.811879971945366],
+          [-120.293202559794551, 37.812062878923179]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_B_006",
+      "length": 112.042,
+      "us_node": "penstock_B_005",
+      "ds_node": "penstock_B_006"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.293181631439595, 37.81203642460865],
+          [-120.293496341577253, 37.811856617688463]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_C_006",
+      "length": 111.597,
+      "us_node": "penstock_C_006",
+      "ds_node": "penstock_C_005"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.293475413222296, 37.811833676774036],
+          [-120.293162795920153, 37.812013690424536]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_D_006",
+      "length": 110.677,
+      "us_node": "penstock_D_005",
+      "ds_node": "penstock_D_006"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.293145006818435, 37.811991369582408],
+          [-120.293452915240721, 37.811810529177492]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_A_007",
+      "length": 203.261,
+      "us_node": "penstock_A_007",
+      "ds_node": "penstock_A_006"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.294073179360737, 37.811539991104809],
+          [-120.293515177096722, 37.811879971945366]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_B_007",
+      "length": 202.93,
+      "us_node": "penstock_B_007",
+      "ds_node": "penstock_B_006"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.294053297423503, 37.811517050092],
+          [-120.293496341577253, 37.811856617688463]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_C_007",
+      "length": 202.792,
+      "us_node": "penstock_C_006",
+      "ds_node": "penstock_C_007"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.293475413222296, 37.811833676774036],
+          [-120.294032369068574, 37.811494729099742]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_D_007",
+      "length": 202.263,
+      "us_node": "penstock_D_007",
+      "ds_node": "penstock_D_006"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.294008563064807, 37.811472614776683],
+          [-120.293452915240721, 37.811810529177492]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_A_008",
+      "length": 222.65,
+      "us_node": "penstock_A_007",
+      "ds_node": "penstock_A_008"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.294073179360737, 37.811539991104809],
+          [-120.29468638016094, 37.811169627216039]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_B_008",
+      "length": 224.077,
+      "us_node": "penstock_B_008",
+      "ds_node": "penstock_B_007"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.294668867885491, 37.811142693604467],
+          [-120.294053297423503, 37.811517050092]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_C_008",
+      "length": 225.883,
+      "us_node": "penstock_C_007",
+      "ds_node": "penstock_C_008"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.294032369068574, 37.811494729099742],
+          [-120.294651355973727, 37.811115760542442]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_D_008",
+      "length": 228.215,
+      "us_node": "penstock_D_007",
+      "ds_node": "penstock_D_008"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.294008563064807, 37.811472614776683],
+          [-120.29463574982509, 37.81109160291625]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_A_009",
+      "length": 70.6,
+      "us_node": "penstock_A_009",
+      "ds_node": "penstock_A_008"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.294920254527568, 37.811113411106234],
+          [-120.29468638016094, 37.811169627216039]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_B_009",
+      "length": 72.716,
+      "us_node": "penstock_B_008",
+      "ds_node": "penstock_B_009"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.294668867885491, 37.811142693604467],
+          [-120.294909790350076, 37.811084889681226]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_C_009",
+      "length": 74.723,
+      "us_node": "penstock_C_009",
+      "ds_node": "penstock_C_008"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.29490026556492, 37.811059991004456],
+          [-120.294651355973727, 37.811115760542442]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_D_009",
+      "length": 76.537,
+      "us_node": "penstock_D_009",
+      "ds_node": "penstock_D_008"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.294890273588535, 37.811033287633414],
+          [-120.29463574982509, 37.81109160291625]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 96.0,
+      "type": "WSP",
+      "name": "penstock_CD_head_007",
+      "length": 75.366,
+      "us_node": "penstock_CD_bifurcation",
+      "ds_node": "penstock_CD_head_valve_002"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.289265151414142, 37.813592046197549],
+          [-120.289101604964003, 37.813663479719523],
+          [-120.289081057842921, 37.813669062495357],
+          [-120.28905898496852, 37.813671590971154],
+          [-120.289029077935425, 37.813668475312816]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 96.0,
+      "type": "WSP",
+      "name": "penstock_AB_head_007",
+      "length": 70.529,
+      "us_node": "penstock_AB_bifurcation",
+      "ds_node": "penstock_AB_head_valve_002"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.28929863678205, 37.813645367042071],
+          [-120.28915022850876, 37.813707293707346],
+          [-120.289124283888668, 37.813712366264092],
+          [-120.28909939672279, 37.813712438921407],
+          [-120.289074695209152, 37.813710325935602]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_A_010",
+      "length": 300.046,
+      "us_node": "penstock_A_010",
+      "ds_node": "penstock_A_009"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.295930047654139, 37.810920787934876],
+          [-120.294920254527568, 37.811113411106234]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_B_010.1",
+      "length": 270.817,
+      "us_node": "penstock_B_009.1",
+      "ds_node": "penstock_B_009"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.295821672231824, 37.81091323397721],
+          [-120.294909587873136, 37.811084904691022]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_C_010.1",
+      "length": 270.951,
+      "us_node": "penstock_C_009.1",
+      "ds_node": "penstock_C_009"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.295812401624573, 37.810886901965532],
+          [-120.29490026556492, 37.811059991004456]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_D_010",
+      "length": 299.832,
+      "us_node": "penstock_D_010",
+      "ds_node": "penstock_D_009"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.295898655121704, 37.810838530247196],
+          [-120.294890273588535, 37.811033287633414]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_B_010.2",
+      "length": 13.427,
+      "us_node": "penstock_B_009.2",
+      "ds_node": "penstock_B_009.1"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.29586664127892, 37.810903917882641],
+          [-120.295821672231824, 37.81091323397721]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_C_010.2",
+      "length": 13.261,
+      "us_node": "penstock_C_009.2",
+      "ds_node": "penstock_C_009.1"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.295856634909214, 37.810877178971154],
+          [-120.295812401624573, 37.810886901965532]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 48.0,
+      "type": "WSP",
+      "name": "penstock_crossover_BC_001",
+      "length": 5.134,
+      "us_node": "penstock_B_009.1",
+      "ds_node": "penstock_crossover_BC_001"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.295821672231824, 37.81091323397721],
+          [-120.295816891255299, 37.81089965420675]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 48.0,
+      "type": "WSP",
+      "name": "penstock_crossover_BC_002",
+      "length": 4.821,
+      "us_node": "penstock_crossover_BC_001",
+      "ds_node": "penstock_C_009.1"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.295816891255299, 37.81089965420675],
+          [-120.295812401624573, 37.810886901965532]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 48.0,
+      "type": "WSP",
+      "name": "penstock_crossover_BC_003",
+      "length": 5.079,
+      "us_node": "penstock_B_009.2",
+      "ds_node": "penstock_crossover_BC_002"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.29586664127892, 37.810903917882641],
+          [-120.295861638094067, 37.810890548428112]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 48.0,
+      "type": "WSP",
+      "name": "penstock_crossover_BC_004",
+      "length": 5.079,
+      "us_node": "penstock_crossover_BC_002",
+      "ds_node": "penstock_C_009.2"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.295861638094067, 37.810890548428112],
+          [-120.295856634909214, 37.810877178971154]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_B_010.3",
+      "length": 15.541,
+      "us_node": "penstock_B_009.2",
+      "ds_node": "penstock_B_010"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.29586664127892, 37.810903917882641],
+          [-120.295919060267792, 37.810894333211145]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_C_010.3",
+      "length": 15.679,
+      "us_node": "penstock_C_009.2",
+      "ds_node": "penstock_C_010"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.295856634909214, 37.810877178971154],
+          [-120.295909119299196, 37.810866225056806]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 96.0,
+      "type": "WSP",
+      "name": "penstock_AB_head_001",
+      "length": 75.17,
+      "us_node": "main_penstock_bifurcation",
+      "ds_node": "penstock_AB_head_valve_001"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.284076401450434, 37.812790484574734],
+          [-120.284276125898074, 37.812922793989195]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 96.0,
+      "type": "WSP",
+      "name": "penstock_CD_head_001",
+      "length": 77.8,
+      "us_node": "main_penstock_bifurcation",
+      "ds_node": "penstock_CD_head_valve_001"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.284076401450434, 37.812790484574734],
+          [-120.284328512186562, 37.812865597522013]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 120.0,
+      "type": "tunnel",
+      "name": "priest_inlet_sluice_002_B",
+      "length": 8.671,
+      "us_node": "priest_inlet_001",
+      "ds_node": "priest_inlet_002"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.268996693651744, 37.803337427207907],
+          [-120.268976863096512, 37.803355299627817]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 120.0,
+      "type": "tunnel",
+      "name": "priest_inlet_sluice_001_B",
+      "length": 20.053,
+      "us_node": "priest_inlet_001",
+      "ds_node": "priest_inlet_001"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.268996693651744, 37.803337427207907],
+          [-120.268965658622392, 37.803317490378546],
+          [-120.268946476106095, 37.803335243395004]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_A_011",
+      "length": 65.526,
+      "us_node": "penstock_A_010",
+      "ds_node": "penstock_AB_collection"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.295930047654139, 37.810920787934876],
+          [-120.296127009573695, 37.810878069189272],
+          [-120.296138258564483, 37.81086249947419]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_B_011",
+      "length": 65.962,
+      "us_node": "penstock_AB_collection",
+      "ds_node": "penstock_B_010"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.296138258564483, 37.81086249947419],
+          [-120.296110964501537, 37.810853405656786],
+          [-120.295919060267792, 37.810894333211145]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_C_011",
+      "length": 88.968,
+      "us_node": "penstock_C_010",
+      "ds_node": "penstock_CD_collection"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.295909119299196, 37.810866225056806],
+          [-120.296181946505584, 37.810810830042186],
+          [-120.296191625869753, 37.810791402326394]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 72.0,
+      "type": "WSP",
+      "name": "penstock_D_011",
+      "length": 87.226,
+      "us_node": "penstock_CD_collection",
+      "ds_node": "penstock_D_010"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.296191625869753, 37.810791402326394],
+          [-120.296166250239324, 37.810786028701976],
+          [-120.295898655121704, 37.810838530247196]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 96.0,
+      "type": "WSP",
+      "name": "penstock_CD_foot_001",
+      "length": 12.557,
+      "us_node": "penstock_CD_collection",
+      "ds_node": "penstock_CD_foot_valve_001"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.296191625869753, 37.810791402326394],
+          [-120.296235052206384, 37.810789955581384]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 96.0,
+      "type": "WSP",
+      "name": "penstock_AB_foot_001",
+      "length": 11.605,
+      "us_node": "penstock_AB_collection",
+      "ds_node": "penstock_AB_foot_valve_001"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.296138258564483, 37.81086249947419],
+          [-120.296178284043435, 37.810859812664617]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 96.0,
+      "type": "WSP",
+      "name": "penstock_AB_foot_002",
+      "length": 1041.388,
+      "us_node": "penstock_AB_foot_valve_001",
+      "ds_node": "mocc_ph_turbine_1_inlet"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.296178284043435, 37.810859812664617],
+          [-120.297788850579579, 37.810022908825061],
+          [-120.299264742289438, 37.809387288353129]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 96.0,
+      "type": "WSP",
+      "name": "penstock_CD_foot_002",
+      "length": 1021.178,
+      "us_node": "penstock_CD_foot_valve_001",
+      "ds_node": "mocc_ph_turbine_2_inlet"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.299234964772836, 37.809308286195233],
+          [-120.29777981090821, 37.809989638609949],
+          [-120.296235052206384, 37.810789955581384]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 96.0,
+      "type": "WSP",
+      "name": "penstock_AB_foot_003",
+      "length": 43.391,
+      "us_node": "mocc_ph_turbine_1_inlet",
+      "ds_node": "moccasin_reservoir"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.299264742289438, 37.809387288353129],
+          [-120.299405658802328, 37.809346069496129]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 96.0,
+      "type": "WSP",
+      "name": "penstock_CD_foot_003",
+      "length": 42.218,
+      "us_node": "mocc_ph_turbine_2_inlet",
+      "ds_node": "moccasin_reservoir"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.299371519423289, 37.809267013627107],
+          [-120.299234964772836, 37.809308286195233]
+        ]
+      ]
+    }
+  },
+  {
+    "properties": {
+      "size": 120.0,
+      "type": "WSP",
+      "name": "tunnel_002",
+      "length": 504.401,
+      "us_node": "main_penstock_bifurcation",
+      "ds_node": "overflow"
+    },
+    "geometry": {
+      "type": "MultiLineString",
+      "schematic": [],
+      "geographic": [
+        [
+          [-120.284076401450434, 37.812790484574734],
+          [-120.28266507862682, 37.811975023580807]
+        ]
+      ]
+    }
+  }
+]

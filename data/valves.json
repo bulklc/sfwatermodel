@@ -1,0 +1,182 @@
+[
+  {
+    "properties": {
+      "name": "penstock_AB_head_valve_002",
+      "size": 96.0,
+      "type": "butterfly",
+      "setting": 0.0,
+      "status": "1",
+      "elev": 1974.0
+    },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.289074695209152, 37.813710325935602]
+    }
+  },
+  {
+    "properties": {
+      "name": "penstock_CD_head_valve_002",
+      "size": 96.0,
+      "type": "butterfly",
+      "setting": 0.0,
+      "status": "1",
+      "elev": 1974.0
+    },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.289029077935425, 37.813668475312816]
+    }
+  },
+  {
+    "properties": {
+      "name": "penstock_crossover_BC_001",
+      "size": 48.0,
+      "type": "gate",
+      "setting": 0.0,
+      "status": "0",
+      "elev": 1111.0
+    },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.295816891255299, 37.81089965420675]
+    }
+  },
+  {
+    "properties": {
+      "name": "penstock_crossover_BC_002",
+      "size": 48.0,
+      "type": "gate",
+      "setting": 0.0,
+      "status": "0",
+      "elev": 1106.0
+    },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.295861638094067, 37.810890548428112]
+    }
+  },
+  {
+    "properties": {
+      "name": "penstock_AB_head_valve_001",
+      "size": 96.0,
+      "type": "butterfly",
+      "setting": 0.0,
+      "status": "1",
+      "elev": 2138.0
+    },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.284276125898074, 37.812922793989195]
+    }
+  },
+  {
+    "properties": {
+      "name": "penstock_CD_head_valve_001",
+      "size": 96.0,
+      "type": "butterfly",
+      "setting": 0.0,
+      "status": "1",
+      "elev": 2138.0
+    },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.284328512186562, 37.812865597522013]
+    }
+  },
+  {
+    "properties": {
+      "name": "priest_inlet_sluice_002",
+      "size": 120.0,
+      "type": "sluice",
+      "setting": 0.0,
+      "status": "1",
+      "elev": 2150.0
+    },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.268976863096512, 37.803355299627817]
+    }
+  },
+  {
+    "properties": {
+      "name": "priest_inlet_sluice_001",
+      "size": 120.0,
+      "type": "sluice",
+      "setting": 0.0,
+      "status": "1",
+      "elev": 2160.0
+    },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.268946476106095, 37.803335243395004]
+    }
+  },
+  {
+    "properties": {
+      "name": "penstock_AB_foot_valve_001",
+      "size": 96.0,
+      "type": "butterfly",
+      "setting": 0.0,
+      "status": "1",
+      "elev": 1078.0
+    },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.296178284043435, 37.810859812664617]
+    }
+  },
+  {
+    "properties": {
+      "name": "penstock_CD_foot_valve_001",
+      "size": 96.0,
+      "type": "butterfly",
+      "setting": 0.0,
+      "status": "1",
+      "elev": 1075.0
+    },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.296235052206384, 37.810789955581384]
+    }
+  },
+  {
+    "properties": {
+      "name": "mocc_ph_turbine_1_inlet",
+      "size": 96.0,
+      "type": "butterfly",
+      "setting": 0.0,
+      "status": "1",
+      "elev": 920.0
+    },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.299264742289438, 37.809387288353129]
+    }
+  },
+  {
+    "properties": {
+      "name": "mocc_ph_turbine_2_inlet",
+      "size": 96.0,
+      "type": "butterfly",
+      "setting": 0.0,
+      "status": "1",
+      "elev": 920.0
+    },
+    "geometry": {
+      "type": "Point",
+      "schematic": [],
+      "geographic": [-120.299234964772836, 37.809308286195233]
+    }
+  }
+]
