@@ -257,25 +257,55 @@ export async function runHydraulicModel(valveOverrides = {}) {
     };
   }
 
+  // Accumulator for total absolute flow touching each node.
+  // For a transit node (zero demand), throughflow = sumAbsFlow / 2.
+  const nodeAbsFlow = {};
+
   const linkCount = model.getCount(CountType.LinkCount);
   for (let i = 1; i <= linkCount; i++) {
     const id = model.getLinkId(i);
+    const flow = model.getLinkValue(i, LinkProperty.Flow);
     const linkResult = {
-      flow: model.getLinkValue(i, LinkProperty.Flow),
+      flow,
       velocity: model.getLinkValue(i, LinkProperty.Velocity),
       headloss: model.getLinkValue(i, LinkProperty.Headloss),
       status: model.getLinkValue(i, LinkProperty.Status),
     };
 
+    // Accumulate absolute flow at each endpoint node
+    const { node1, node2 } = model.getLinkNodes(i);
+    const n1Name = model.getNodeId(node1);
+    const n2Name = model.getNodeId(node2);
+    const absFlow = Math.abs(flow);
+    nodeAbsFlow[n1Name] = (nodeAbsFlow[n1Name] || 0) + absFlow;
+    nodeAbsFlow[n2Name] = (nodeAbsFlow[n2Name] || 0) + absFlow;
+
     // Valve links were prefixed with "v_" – map back to original name
     if (id.startsWith("v_")) {
       const origName = id.slice(2);
       if (referencedValves.has(origName)) {
+        linkResult.us_head = model.getNodeValue(node1, NodeProperty.Head);
+        linkResult.ds_head = model.getNodeValue(node2, NodeProperty.Head);
+        linkResult.us_elev = model.getNodeValue(node1, NodeProperty.Elevation);
+        linkResult.ds_elev = model.getNodeValue(node2, NodeProperty.Elevation);
         results.valves[origName] = linkResult;
         continue;
       }
     }
+
+    // Enrich pipe results with endpoint head & elevation
+    // node1 = upstream (start), node2 = downstream (end) in EPANET
+    linkResult.us_head = model.getNodeValue(node1, NodeProperty.Head);
+    linkResult.ds_head = model.getNodeValue(node2, NodeProperty.Head);
+    linkResult.us_elev = model.getNodeValue(node1, NodeProperty.Elevation);
+    linkResult.ds_elev = model.getNodeValue(node2, NodeProperty.Elevation);
+
     results.pipes[id] = linkResult;
+  }
+
+  // Store throughflow on each node (sum of abs connected flows / 2)
+  for (const [id, nodeResult] of Object.entries(results.nodes)) {
+    nodeResult.flow = (nodeAbsFlow[id] || 0) / 2;
   }
 
   model.close();

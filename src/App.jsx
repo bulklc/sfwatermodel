@@ -1,12 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
 import MapPanel from "./components/MapPanel.jsx";
 import ViewModeSwitch from "./components/ViewModeSwitch.jsx";
+import HelpModal from "./components/HelpModal.jsx";
 import { runHydraulicModel } from "./epanetModel.js";
 import "./App.css";
+import "./components/HelpModal.css";
 
 export default function App() {
   const [results, setResults] = useState(null);
   const [modelError, setModelError] = useState(null);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [valveOverrides, setValveOverrides] = useState({
     mocc_ph_turbine_1_inlet: {
       mode: "throttled",
@@ -57,7 +60,15 @@ export default function App() {
         {!results && !modelError && (
           <div className="status-overlay">Running hydraulic model…</div>
         )}
+        <button
+          className="help-button"
+          onClick={() => setHelpOpen(true)}
+          title="About this application"
+        >
+          ?
+        </button>
       </div>
+      <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>
   );
 }

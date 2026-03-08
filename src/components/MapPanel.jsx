@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import { createRoot } from "react-dom/client";
 import {
   MapContainer,
   TileLayer,
@@ -161,20 +162,32 @@ function addHoverHighlight(feature, layer, resultsRef) {
   });
 }
 
-function makeOnEachFeature(popupFn, resultsRef) {
+function makeOnEachFeature(PopupComponent, resultsRef) {
   return (feature, layer) => {
     if (feature.properties) {
-      // Bind an empty popup; content is set lazily on open so that
-      // results can update without remounting the GeoJSON layer.
-      const popup = L.popup({ className: "styled-popup", maxWidth: 300 });
+      // Create a container div and a React root for this popup.
+      // On popupopen, render the React component into it;
+      // on popupclose, unmount to avoid leaks.
+      const container = document.createElement("div");
+      let root = null;
+      const popup = L.popup({ className: "styled-popup", maxWidth: 350 });
+      popup.setContent(container);
       layer.bindPopup(popup);
+
       layer.on("popupopen", () => {
-        popup.setContent(
-          popupFn({
-            properties: feature.properties,
-            results: resultsRef.current,
-          }),
+        if (!root) root = createRoot(container);
+        root.render(
+          <PopupComponent
+            properties={feature.properties}
+            results={resultsRef.current}
+          />,
         );
+      });
+      layer.on("popupclose", () => {
+        if (root) {
+          root.unmount();
+          root = null;
+        }
       });
     }
     addHoverHighlight(feature, layer, resultsRef);
@@ -615,10 +628,13 @@ export default function MapPanel({
                   }
                 },
                 popupopen: (e) => {
+                  const popup = e.popup;
+                  // Always position the popup at the valve center,
+                  // not wherever the user happened to click on the circle.
+                  popup.setLatLng([coords[1], coords[0]]);
                   // After the initial layout, lock the popup position so
                   // content re-renders (slider changes, model re-runs)
                   // cannot trigger Leaflet's _updateLayout and shift it.
-                  const popup = e.popup;
                   if (popup && !popup._origUpdateLayout) {
                     popup._origUpdateLayout = popup._updateLayout.bind(popup);
                   }

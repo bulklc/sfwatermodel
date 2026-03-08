@@ -1,5 +1,5 @@
 .popup-container {
-    width: 260px;
+    width: 310px;
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     font-size: 13px;
     color: #333;
@@ -7,11 +7,11 @@
 
 /* Prevent Leaflet from recalculating popup layout on content changes */
 .styled-popup .leaflet-popup-content-wrapper {
-    width: 280px !important;
+    width: 330px !important;
 }
 
 .styled-popup .leaflet-popup-content {
-    width: 260px !important;
+    width: 310px !important;
     margin: 10px;
 }
 
@@ -23,6 +23,7 @@
     margin-bottom: 8px;
     border-bottom: 2px solid #1f78b4;
     word-break: break-word;
+    text-align: center;
 }
 
 .popup-row {
@@ -137,6 +138,9 @@
     align-items: center;
     gap: 8px;
     margin-top: 4px;
+    max-width: 210px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .valve-slider {
@@ -184,6 +188,8 @@
 
 .tri-switch {
     user-select: none;
+    max-width: 210px;
+    margin: 0 auto;
 }
 
 .tri-switch-track {
