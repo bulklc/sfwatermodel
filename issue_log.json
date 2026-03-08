@@ -1,0 +1,20 @@
+[
+  {
+    "issue": "For the display of the computed results for nodes in the node popup, there should be tabulated, numeric results as well as a graphic presnetation. The tabulted numeric results should include total head, pressure head, and flow (in MGD). The graphic presentation should be a simple chart with two vertical bars, side by side. The first bar should show the total head at that node. The second bar should be two bars stacked on top of eachother. On the bottom should be the node's elevation. Ontop should be the node's pressure head. This shold show how those two heads sum to the node's total head. "
+  },
+  {
+    "issue": "For the display of the computed results in the pipeline popup, there should also be the two sections: tabulated results and a graph. The tabulated results should show Flow (in MGD); total upstream head, total upstream pressure head, total downstream head, total downstream pressure head, and total headloss along the entire pipe's length. The graph should show how these values vary along the X-axis, representing the length of the pipe. It should show the upstream values on the right (elevation, pressure head, total head), downstream values on the left (elevation, pressure head, total head), and then two sloped lines connecting the left and right. The top sloped line should run form the total head on the right to the total head on the left. THe bottom line shoild connect fromthe elevation on the right to the elevation on the left. I know the right-to-left conventions is strange here, but I'm hoping it makes sense to the user given that the system itslef flows from east-to-west. Let me know if you think otherwise."
+  },
+  {
+    "issue": "For the display of the computed results in the valve popup, there should again be two sections: tabulated numeric results and a four-bar chart. The tabulated numeric results should include upstream head, upsrteam pressure head, downstream head, downstream pressure head, head loss, and flow. The four-bar chart should be: first bar: total downstream head; second bar: two-stacked sections - down stream elevation on bottom, downstream pressure head on top; then a clear vertical dilineator (thick line, etc); third bar: two-stakced sections - upstream elevation on bottom, upstream pressure head on top; fourth bar: upstream total head. Consider adding some type of marker / formatting to make it clear that the elevation is the same thing between the upstream and downstream sides of the valve. "
+  },
+  {
+    "issue": "On the valve popup, if the type i "
+  },
+  {
+    "issue": ""
+  },
+  {
+    "issue": ""
+  }
+]

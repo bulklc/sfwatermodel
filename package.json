@@ -9,9 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "epanet-js": "^0.8.0",
+    "leaflet": "^1.9.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "leaflet": "^1.9.4",
     "react-leaflet": "^5.0.0"
   },
   "devDependencies": {
