@@ -26,7 +26,10 @@ import overflowRaw from "../data/overflow.json";
  *     pipes: { [name]: { flow, velocity, headloss, status } },
  *     valves: { [name]: { flow, velocity, headloss, status } } }
  */
-export async function runHydraulicModel(valveOverrides = {}) {
+export async function runHydraulicModel(
+  valveOverrides = {},
+  elevOverrides = {},
+) {
   // ── Initialise EPANET workspace & project ──────────────────────────
   const ws = new Workspace();
   await ws.loadModule();
@@ -73,7 +76,8 @@ export async function runHydraulicModel(valveOverrides = {}) {
   for (const [name, props] of reservoirMap) {
     if (!pipeRefs.has(name)) continue;
     const idx = model.addNode(name, NodeType.Reservoir);
-    model.setNodeValue(idx, NodeProperty.Elevation, props.elev);
+    const resElev = elevOverrides[name] ?? props.elev;
+    model.setNodeValue(idx, NodeProperty.Elevation, resElev);
     addedNodeNames.add(name);
   }
 
@@ -87,7 +91,8 @@ export async function runHydraulicModel(valveOverrides = {}) {
   ) {
     const prProps = reservoirMap.get("Priest Reservoir");
     const prIdx = model.addNode("Priest_Reservoir", NodeType.Reservoir);
-    model.setNodeValue(prIdx, NodeProperty.Elevation, prProps.elev);
+    const prElev = elevOverrides["Priest Reservoir"] ?? prProps.elev;
+    model.setNodeValue(prIdx, NodeProperty.Elevation, prElev);
     addedNodeNames.add("Priest_Reservoir");
   }
 
@@ -100,7 +105,8 @@ export async function runHydraulicModel(valveOverrides = {}) {
   for (const [name, props] of overflowMap) {
     const shaftName = name + "_shaft";
     const idx = model.addNode(shaftName, NodeType.Reservoir);
-    model.setNodeValue(idx, NodeProperty.Elevation, props.elev);
+    const ovfElev = elevOverrides[name] ?? props.elev;
+    model.setNodeValue(idx, NodeProperty.Elevation, ovfElev);
     addedNodeNames.add(shaftName);
     // Do NOT add to addedNodeNames with the original name, so the
     // "overflow" junction from nodesRaw gets added in section 3.
@@ -255,6 +261,12 @@ export async function runHydraulicModel(valveOverrides = {}) {
       head: model.getNodeValue(i, NodeProperty.Head),
       demand: model.getNodeValue(i, NodeProperty.Demand),
     };
+  }
+
+  // Alias Priest_Reservoir → "Priest Reservoir" so the popup can find it
+  // by the original GeoJSON feature name (which uses a space).
+  if (results.nodes["Priest_Reservoir"]) {
+    results.nodes["Priest Reservoir"] = results.nodes["Priest_Reservoir"];
   }
 
   // Accumulator for total absolute flow touching each node.

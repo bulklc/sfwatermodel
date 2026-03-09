@@ -10,7 +10,18 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { nodes, pipes, valves, reservoirs, overflow } from "../data.js";
+import {
+  nodes,
+  pipes,
+  valves,
+  reservoirs,
+  overflow,
+  nodesSch,
+  pipesSch,
+  valvesSch,
+  reservoirsSch,
+  overflowSch,
+} from "../data.js";
 import NodePopup from "./popups/NodePopup.jsx";
 import PipePopup from "./popups/PipePopup.jsx";
 import ValvePopup from "./popups/ValvePopup.jsx";
@@ -162,7 +173,7 @@ function addHoverHighlight(feature, layer, resultsRef) {
   });
 }
 
-function makeOnEachFeature(PopupComponent, resultsRef) {
+function makeOnEachFeature(PopupComponent, resultsRef, extraRefsOrNull) {
   return (feature, layer) => {
     if (feature.properties) {
       // Create a container div and a React root for this popup.
@@ -170,20 +181,47 @@ function makeOnEachFeature(PopupComponent, resultsRef) {
       // on popupclose, unmount to avoid leaks.
       const container = document.createElement("div");
       let root = null;
-      const popup = L.popup({ className: "styled-popup", maxWidth: 350 });
+      const popup = L.popup({
+        className: "styled-popup",
+        maxWidth: 350,
+        closeOnClick: false,
+        autoPan: true,
+        autoPanPadding: L.point(50, 50),
+      });
       popup.setContent(container);
       layer.bindPopup(popup);
 
-      layer.on("popupopen", () => {
+      const renderPopup = () => {
         if (!root) root = createRoot(container);
+        const extraProps = {};
+        if (extraRefsOrNull) {
+          const name = feature.properties.name;
+          if (extraRefsOrNull.elevOverridesRef)
+            extraProps.elevOverride =
+              extraRefsOrNull.elevOverridesRef.current?.[name];
+          if (extraRefsOrNull.onElevOverrideChangeRef)
+            extraProps.onElevChange = (elev) =>
+              extraRefsOrNull.onElevOverrideChangeRef.current?.(name, elev);
+        }
         root.render(
           <PopupComponent
             properties={feature.properties}
             results={resultsRef.current}
+            {...extraProps}
           />,
         );
+      };
+
+      // Store render function on layer so we can re-render open popups
+      layer._renderPopup = renderPopup;
+      layer._popupOpen = false;
+
+      layer.on("popupopen", () => {
+        layer._popupOpen = true;
+        renderPopup();
       });
       layer.on("popupclose", () => {
+        layer._popupOpen = false;
         if (root) {
           root.unmount();
           root = null;
@@ -203,7 +241,7 @@ function FitBounds({ data }) {
     const group = L.geoJSON(data);
     const bounds = group.getBounds();
     if (bounds.isValid()) {
-      map.fitBounds(bounds, { padding: [20, 20] });
+      map.fitBounds(bounds, { padding: [20, 20], animate: false });
       fitted.current = true;
     }
   }, [map, data]);
@@ -226,118 +264,47 @@ function CreatePanes() {
   return null;
 }
 
-/* ---- layer visibility control ---- */
-const LAYER_DEFS = [
-  { id: "reservoirs", label: "Reservoirs", color: "#a6cde3" },
-  { id: "overflow", label: "Overflow", color: "#a6cde3" },
-  { id: "pipes", label: "Pipes", color: "#1f78b4" },
-  { id: "nodes", label: "Nodes", color: "#000000" },
-  { id: "valves", label: "Valves", color: "#1f78b4" },
-];
-
-function LayerControl({ visibility, onToggle }) {
-  return (
-    <div className="layer-control">
-      {LAYER_DEFS.map(({ id, label, color }) => (
-        <label key={id} className="layer-control-item">
-          <input
-            type="checkbox"
-            checked={visibility[id]}
-            onChange={() => onToggle(id)}
-          />
-          <span
-            className="layer-control-swatch"
-            style={{ background: color }}
-          />
-          <span className="layer-control-label">{label}</span>
-        </label>
-      ))}
-    </div>
-  );
-}
-
-/* ---- Overflow warning badge ---- */
-function OverflowBadge({ overflowData, hydraulicResults }) {
-  if (!overflowData?.features?.length) return null;
-
-  return overflowData.features.map((feature) => {
-    const name = feature.properties.name;
-    const ovf = hydraulicResults?.overflow?.[name];
-    if (!ovf?.active) return null;
-
-    // Compute centroid of the polygon for badge placement
-    const coords = feature.geometry.coordinates;
-    // MultiPolygon → first polygon → first ring
-    const ring = coords[0]?.[0] || [];
-    if (!ring.length) return null;
-    let latSum = 0,
-      lngSum = 0;
-    for (const [lng, lat] of ring) {
-      latSum += lat;
-      lngSum += lng;
-    }
-    const center = [latSum / ring.length, lngSum / ring.length];
-
-    return (
-      <CircleMarker
-        key={`ovf-badge-${name}`}
-        center={center}
-        radius={14}
-        pathOptions={{
-          fillColor: "#e74c3c",
-          color: "#c0392b",
-          weight: 2,
-          fillOpacity: 0.85,
-        }}
-        pane="pointsPane"
-      >
-        <Popup className="styled-popup" maxWidth={260}>
-          <div
-            style={{
-              padding: "6px 2px",
-              fontFamily: "'Segoe UI', system-ui, sans-serif",
-              fontSize: "13px",
-            }}
-          >
-            <div style={{ fontWeight: 700, color: "#c0392b", marginBottom: 4 }}>
-              ⚠ Overflow Active
-            </div>
-            <div>
-              <span style={{ color: "#666" }}>Flow: </span>
-              <strong>{fmtNum(ovf.flow, 4)} MGD</strong>
-            </div>
-          </div>
-        </Popup>
-      </CircleMarker>
-    );
-  });
-}
-
 export default function MapPanel({
   hydraulicResults,
   valveOverrides,
   onValveOverrideChange,
+  elevOverrides,
+  onElevOverrideChange,
+  viewMode = "2d-geo",
+  layerVis,
 }) {
   const r = hydraulicResults;
+  const isSchematic = viewMode === "2d-sch";
+
+  // Select coordinate-appropriate data source
+  const activeNodes = isSchematic ? nodesSch : nodes;
+  const activePipes = isSchematic ? pipesSch : pipes;
+  const activeValves = isSchematic ? valvesSch : valves;
+  const activeReservoirs = isSchematic ? reservoirsSch : reservoirs;
+  const activeOverflow = isSchematic ? overflowSch : overflow;
 
   // Keep a ref to the latest results so lazily-opened popups always
   // show current data without forcing GeoJSON layers to remount.
   const resultsRef = useRef(r);
   resultsRef.current = r;
 
-  // Layer visibility state
-  const [layerVis, setLayerVis] = useState({
-    reservoirs: true,
-    overflow: true,
-    pipes: true,
-    nodes: true,
-    valves: true,
-  });
-  const toggleLayer = (id) =>
-    setLayerVis((prev) => ({ ...prev, [id]: !prev[id] }));
+  // Refs for elevation overrides so imperative popups can access current values
+  const elevOverridesRef = useRef(elevOverrides);
+  elevOverridesRef.current = elevOverrides;
+  const onElevOverrideChangeRef = useRef(onElevOverrideChange);
+  onElevOverrideChangeRef.current = onElevOverrideChange;
 
   const pipeLayerRef = useRef(null);
+  const resLayerRef = useRef(null);
+  const ovfLayerRef = useRef(null);
   const [pipeLayerReady, setPipeLayerReady] = useState(false);
+
+  // Reset pipe layer readiness when the map remounts (view mode change)
+  // so the animation useEffect re-triggers once the new GeoJSON layer mounts.
+  useEffect(() => {
+    pipeLayerRef.current = null;
+    setPipeLayerReady(false);
+  }, [viewMode]);
 
   // Callback ref: when the GeoJSON pipe layer mounts, flag it ready
   // so the animation useEffect re-fires with actual sublayers present.
@@ -347,6 +314,15 @@ export default function MapPanel({
       setPipeLayerReady(true);
     }
   }, []);
+
+  // Stable extra-refs object for reservoir/overflow popups
+  const elevExtraRefs = useMemo(
+    () => ({
+      elevOverridesRef,
+      onElevOverrideChangeRef,
+    }),
+    [],
+  );
 
   // Memoize onEachFeature callbacks so they are stable across re-renders.
   // They read from resultsRef (always current) so they don't need to change.
@@ -359,13 +335,26 @@ export default function MapPanel({
     [],
   );
   const onEachReservoir = useMemo(
-    () => makeOnEachFeature(ReservoirPopup, resultsRef),
+    () => makeOnEachFeature(ReservoirPopup, resultsRef, elevExtraRefs),
     [],
   );
   const onEachOverflow = useMemo(
-    () => makeOnEachFeature(OverflowPopup, resultsRef),
+    () => makeOnEachFeature(OverflowPopup, resultsRef, elevExtraRefs),
     [],
   );
+
+  // Re-render any open reservoir/overflow popups when results or overrides change
+  useEffect(() => {
+    const rerender = (layerRef) => {
+      const lg = layerRef.current;
+      if (!lg) return;
+      lg.eachLayer?.((layer) => {
+        if (layer._popupOpen && layer._renderPopup) layer._renderPopup();
+      });
+    };
+    rerender(resLayerRef);
+    rerender(ovfLayerRef);
+  }, [hydraulicResults, elevOverrides]);
 
   // Stable pipe style function that reads from resultsRef so it always
   // returns the correct colour, even when react-leaflet re-applies styles
@@ -384,9 +373,13 @@ export default function MapPanel({
 
   // When hydraulicResults change, imperatively re-style every pipe layer
   // so colours and ant-trail animation update immediately.
+  // Pause animation during zoom to prevent flicker (especially in CRS.Simple).
   useEffect(() => {
     const group = pipeLayerRef.current;
     if (!r || !group) return;
+
+    // Get the Leaflet map instance from the group's parent
+    const map = group._map || group._mapToAdd;
 
     // Compute max flow for animation speed scaling
     let maxFlow = 1;
@@ -409,30 +402,21 @@ export default function MapPanel({
         const color = hasFlow ? "#1f78b4" : "#999";
 
         if (hasFlow) {
-          // All flow is westward. Determine sign from geometry:
-          // compare first and last coordinate longitude.
-          // Path drawn east→west (first lng > last lng) means
-          // forward along path = westward → use negative dashOffset.
           const coords = layer.feature.geometry?.coordinates;
           let first, last;
           if (coords) {
-            // Handle MultiLineString [[ring]] and LineString [pts]
             const ring = Array.isArray(coords[0]?.[0]) ? coords[0] : coords;
             first = ring[0];
             last = ring[ring.length - 1];
           }
-          // Increasing dashOffset moves dashes toward path start,
-          // so to animate forward (start→end) we decrease offset (sign = -1)
-          let sign = -1; // default: path draws west
+          let sign = -1;
           if (first && last && first[0] < last[0]) {
-            // Path draws east (first lng < last lng), flip to go west
             sign = 1;
           }
 
-          // Speed: pixels per second — higher flow → faster ants
-          // Range roughly 15 px/s (low flow) to 120 px/s (max flow)
           const speed = 7.5 + (absFlow / maxFlow) * 52.5;
-          layer.setStyle({ color, dashArray: "10 10" });
+          // Start solid; dash pattern enabled after initial render settles
+          layer.setStyle({ color, dashArray: null, dashOffset: null });
           layerFlowMap.set(layer, { speed, sign, color });
         } else {
           layer.setStyle({ color, dashArray: null, dashOffset: null });
@@ -448,72 +432,151 @@ export default function MapPanel({
       offsets.set(layer, 0);
     }
 
+    let zooming = false;
+    let dashesEnabled = false;
     let rafId;
+    let startTimerId;
     function animate(now) {
-      const dt = (now - prevTime) / 1000; // seconds
+      const dt = (now - prevTime) / 1000;
       prevTime = now;
-      for (const [layer, meta] of layerFlowMap) {
-        let offset = (offsets.get(layer) || 0) + meta.speed * meta.sign * dt;
-        // Wrap within dash pattern period (20 = 10+10)
-        offset = ((offset % 20) + 20) % 20;
-        offsets.set(layer, offset);
-        // Only update dashOffset — colour and dashArray are managed
-        // by hover handlers and the initial setStyle above.
-        const el = layer.getElement?.();
-        if (el) {
-          el.setAttribute("stroke-dashoffset", offset);
+      if (!zooming) {
+        for (const [layer, meta] of layerFlowMap) {
+          let offset = (offsets.get(layer) || 0) + meta.speed * meta.sign * dt;
+          offset = ((offset % 20) + 20) % 20;
+          offsets.set(layer, offset);
+          // Store on layer.options so Leaflet's _updateStyle preserves it
+          // after zoom redraws (prevents single-frame flicker to offset 0).
+          layer.options.dashOffset = String(offset);
+          const el = layer.getElement?.();
+          if (el) {
+            el.setAttribute("stroke-dashoffset", offset);
+          }
         }
       }
       rafId = requestAnimationFrame(animate);
     }
+
+    const onZoomStart = () => {
+      zooming = true;
+      if (!dashesEnabled) return;
+      // Temporarily remove dash patterns during zoom animation
+      // so the SVG transform doesn't cause visual dash-jumping flicker.
+      for (const [layer, meta] of layerFlowMap) {
+        const el = layer.getElement?.();
+        if (el) {
+          el.setAttribute("stroke-dasharray", "none");
+          el.removeAttribute("stroke-dashoffset");
+        }
+      }
+    };
+    const onZoomEnd = () => {
+      if (!dashesEnabled) {
+        zooming = false;
+        return;
+      }
+      // Leaflet redraws paths at zoomend via _updateStyle.
+      // Wait one frame for Leaflet's redraw to complete, then restore
+      // dash patterns and reapply offsets.
+      requestAnimationFrame(() => {
+        for (const [layer, meta] of layerFlowMap) {
+          const cur = offsets.get(layer);
+          layer.options.dashArray = "10 10";
+          if (cur != null) layer.options.dashOffset = String(cur);
+          const el = layer.getElement?.();
+          if (el) {
+            el.setAttribute("stroke-dasharray", "10 10");
+            if (cur != null) el.setAttribute("stroke-dashoffset", cur);
+          }
+        }
+        zooming = false;
+        prevTime = performance.now();
+      });
+    };
+
+    if (map) {
+      map.on("zoomstart", onZoomStart);
+      map.on("zoomend", onZoomEnd);
+    }
+
+    // Delay enabling dash patterns until the map has fully settled
+    // from initial render / fitBounds to prevent first-load flicker.
     if (layerFlowMap.size > 0) {
-      rafId = requestAnimationFrame(animate);
+      startTimerId = setTimeout(() => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            for (const [layer] of layerFlowMap) {
+              layer.options.dashArray = "10 10";
+              layer.options.dashOffset = "0";
+              const el = layer.getElement?.();
+              if (el) {
+                el.setAttribute("stroke-dasharray", "10 10");
+                el.setAttribute("stroke-dashoffset", "0");
+              }
+            }
+            dashesEnabled = true;
+            prevTime = performance.now();
+            rafId = requestAnimationFrame(animate);
+          });
+        });
+      }, 200);
     }
 
     return () => {
+      if (startTimerId) clearTimeout(startTimerId);
       if (rafId) cancelAnimationFrame(rafId);
+      if (map) {
+        map.off("zoomstart", onZoomStart);
+        map.off("zoomend", onZoomEnd);
+      }
     };
-  }, [r, pipeLayerReady]);
+  }, [r, pipeLayerReady, viewMode]);
 
   // Combine all data for bounds calculation
   const allData = {
     type: "FeatureCollection",
     features: [
-      ...reservoirs.features,
-      ...overflow.features,
-      ...pipes.features,
-      ...nodes.features,
-      ...valves.features,
+      ...activeReservoirs.features,
+      ...activeOverflow.features,
+      ...activePipes.features,
+      ...activeNodes.features,
+      ...activeValves.features,
     ],
   };
 
   return (
     <MapContainer
-      center={[37.81, -120.29]}
-      zoom={19}
-      maxZoom={23}
-      style={{ width: "100%", height: "100%" }}
+      key={viewMode}
+      {...(isSchematic ? { crs: L.CRS.Simple, minZoom: 2 } : {})}
+      center={isSchematic ? [5, 13.5] : [37.81, -120.29]}
+      zoom={isSchematic ? 3 : 19}
+      maxZoom={isSchematic ? 10 : 23}
+      style={{
+        width: "100%",
+        height: "100%",
+        background: isSchematic ? "#f0f2f5" : undefined,
+      }}
       scrollWheelZoom={true}
       attributionControl={false}
       preferCanvas={false}
     >
-      <TileLayer
-        url="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
-        attribution=""
-        maxZoom={23}
-        maxNativeZoom={19}
-      />
+      {!isSchematic && layerVis.basemap && (
+        <TileLayer
+          url="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+          attribution=""
+          maxZoom={23}
+          maxNativeZoom={19}
+        />
+      )}
 
       <FitBounds data={allData} />
       <CreatePanes />
-
-      <LayerControl visibility={layerVis} onToggle={toggleLayer} />
 
       {/* Polygons (bottom layer) – stable keys so layers never remount */}
       {layerVis.reservoirs && (
         <GeoJSON
           key="res"
-          data={reservoirs}
+          ref={resLayerRef}
+          data={activeReservoirs}
           style={() => ({ ...polygonStyle("#a6cde3")(), pane: "polygonsPane" })}
           onEachFeature={onEachReservoir}
         />
@@ -521,7 +584,8 @@ export default function MapPanel({
       {layerVis.overflow && (
         <GeoJSON
           key="ovf"
-          data={overflow}
+          ref={ovfLayerRef}
+          data={activeOverflow}
           style={() => ({
             ...polygonStyle("#a6cde3")(),
             pane: "polygonsPane",
@@ -538,15 +602,12 @@ export default function MapPanel({
         />
       )}
 
-      {/* Overflow warning badge */}
-      <OverflowBadge overflowData={overflow} hydraulicResults={r} />
-
       {/* Polylines */}
       {layerVis.pipes && (
         <GeoJSON
           ref={pipeLayerCallbackRef}
           key="pip"
-          data={pipes}
+          data={activePipes}
           style={pipeStyleFn}
           onEachFeature={onEachPipe}
         />
@@ -556,7 +617,7 @@ export default function MapPanel({
       {layerVis.nodes && (
         <GeoJSON
           key="nod"
-          data={nodes}
+          data={activeNodes}
           pointToLayer={pointToLayer("#000000", "pointsPane")}
           onEachFeature={onEachNode}
         />
@@ -564,7 +625,7 @@ export default function MapPanel({
 
       {/* Valve points */}
       {layerVis.valves &&
-        valves.features.map((feature) => {
+        activeValves.features.map((feature) => {
           const coords = feature.geometry.coordinates;
           const vName = feature.properties.name;
           const vType = feature.properties.type;
@@ -659,8 +720,8 @@ export default function MapPanel({
               <Popup
                 className="styled-popup"
                 maxWidth={320}
-                autoPan={false}
-                autoPanOnFocus={false}
+                autoPan={true}
+                autoPanPadding={[50, 50]}
               >
                 <ValvePopup
                   properties={feature.properties}

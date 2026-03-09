@@ -150,17 +150,100 @@ export default function HelpModal({ open, onClose }) {
               overflow is active.
             </li>
             <li>
-              You can use the <strong>layer control</strong> (top-right) to
-              toggle visibility of each element type.
+              A <strong>layer control</strong> in the top-right corner lets you
+              toggle visibility of each element type (Reservoirs, Overflow,
+              Pipes, Nodes, Valves). This control is shared across all view
+              modes and its layer order stays consistent. In 2D-GEO mode a
+              <strong> Basemap</strong> toggle appears at the bottom of the
+              list, letting you show or hide the satellite imagery.
             </li>
           </ul>
         </section>
 
         <section>
+          <h3>View Modes</h3>
+          <p>
+            Use the <strong>2×2 switch</strong> in the lower-right corner to
+            toggle between available view modes:
+          </p>
+          <ul>
+            <li>
+              <strong>2D GEO</strong> — Geographic view with satellite imagery
+              showing elements at their real-world coordinates.
+            </li>
+            <li>
+              <strong>2D SCH</strong> — Schematic view showing the network as a
+              clean circuit-style diagram on a regular grid. Nodes are evenly
+              spaced, pipes appear as straight or L-shaped lines, and reservoirs
+              and overflow structures are shown as simple squares at the
+              terminal points. No satellite imagery is shown.
+            </li>
+            <li>
+              <strong>3D SCH</strong> — A three-dimensional isometric
+              (orthographic) view of the schematic layout. Uses the same X/Y
+              positions as 2D-SCH, but adds a Z-axis representing{" "}
+              <em>elevation</em> and/or <em>total head</em>. Two overlapping
+              overlays are shown:
+              <ul>
+                <li>
+                  <strong>Elevation overlay</strong> (green) — elements
+                  positioned vertically at their physical elevation.
+                </li>
+                <li>
+                  <strong>Total Head overlay</strong> (blue) — elements
+                  positioned at their hydraulic total head computed by the
+                  model.
+                </li>
+              </ul>
+              <strong>Reservoirs</strong> appear as translucent box prisms that
+              float above their connected inlet infrastructure (nodes, valves,
+              and pipes). Vertical riser lines extend from each connected
+              element upward into the bottom of the reservoir solid, showing how
+              water enters the system. <strong>Overflow</strong> appears as a
+              smaller square-based prism whose top face sits just below the
+              parent reservoir's top surface, visually representing the weir
+              crest.
+              <br />
+              Hovering over any element highlights both its elevation and head
+              representations simultaneously (provided both overlays have
+              non-zero opacity), making the cross-layer association immediately
+              clear. Two opacity sliders control the visibility of each overlay
+              independently. The 3D view supports orbit controls (click &amp;
+              drag to rotate, scroll to zoom, right-drag to pan). A{" "}
+              <strong>ViewCube</strong> in the top-left corner displays the
+              current camera orientation as a small 3D cube. Click any of its 26
+              interactive regions — 6 faces, 12 edges, or 8 vertices — to snap
+              the camera to a preset view: clicking a <em>face</em> gives a
+              face-on 2D view along one axis; clicking an <em>edge</em> shows
+              two dimensions equally; clicking a <em>vertex</em> provides an
+              isometric view showing all three dimensions. When viewing a face
+              head-on, two small <strong>↶ / ↷ rotate buttons</strong> appear
+              below the ViewCube, allowing you to spin the 2D view in 90°
+              increments clockwise or counter-clockwise. Pipes show animated
+              dash-offset "marching ants" whose speed is proportional to flow
+              rate, matching the 2D view. When model inputs change (valve
+              settings, reservoir or overflow elevations), all 3D element
+              positions transition smoothly to their new locations, making the
+              hydraulic impact of each change visually clear. Clicking any
+              element opens the same interactive popup as in 2D, including valve
+              controls and elevation sliders.
+            </li>
+          </ul>
+          <p>
+            All views share the same hydraulic model results, popups, layer
+            controls, and valve interactions. Only the coordinate system,
+            perspective, and base map change.
+          </p>
+        </section>
+
+        <section>
           <h3>Element Popups</h3>
           <p>
-            Clicking any element on the map opens a popup with its details. In
-            every popup table, values displayed in{" "}
+            Clicking any element on the map opens a popup with its details.
+            Popups automatically adjust to stay within the visible area: in 2D
+            views the map pans to fit the full popup, and in 3D the popup opens
+            downward when the element is near the top of the screen. In every
+            popup table, values displayed in{" "}
             <strong style={{ color: "#4A90D9" }}>blue</strong> are calculated by
             the model; values in black are input data.
           </p>
@@ -193,9 +276,13 @@ export default function HelpModal({ open, onClose }) {
               in red text. Below the table, a four-bar chart visualises the
               hydraulic grade: DS total head, DS stacked (elevation + pressure
               head), a dashed divider, US stacked (elevation + pressure head),
-              and US total head. When pressure head is negative the amber bar
-              extends downward below the elevation bar instead of stacking on
-              top of it. Interactive controls allow changing the valve state:
+              and US total head. A transparent red bar centered on the dashed
+              divider shows the headloss across the valve (spanning from the
+              upstream total head down to the downstream total head); this bar
+              is hidden when there is no headloss. When pressure head is
+              negative the amber bar extends downward below the elevation bar
+              instead of stacking on top of it. Interactive controls allow
+              changing the valve state:
               <ul>
                 <li>
                   <em>Butterfly valves</em>: a three-way switch (Open /
@@ -210,12 +297,17 @@ export default function HelpModal({ open, onClose }) {
               </ul>
             </li>
             <li>
-              <strong>Reservoir Popup</strong> — Displays elevation, computed
-              head, and net flow (demand).
+              <strong>Reservoir Popup</strong> — Displays elevation (FT, two
+              decimal places) and net flow (demand). A slider with − / + buttons
+              allows adjusting the elevation between 0 and 2,500 FT. The model
+              re-calculates immediately when the elevation is changed.
             </li>
             <li>
-              <strong>Overflow Popup</strong> — Displays weir crest elevation,
-              head, overflow flow, and whether overflow is currently active.
+              <strong>Overflow Popup</strong> — Displays weir crest elevation
+              (FT, two decimal places), overflow flow, and whether overflow is
+              currently active. A slider with − / + buttons allows adjusting the
+              weir crest elevation between 0 and 2,500 FT. The model re-runs
+              immediately with the updated value.
             </li>
           </ul>
         </section>

@@ -143,6 +143,10 @@
     margin-right: auto;
 }
 
+.valve-slider-row.elev-slider-row {
+    max-width: none;
+}
+
 .valve-slider {
     flex: 1;
     height: 6px;
@@ -271,4 +275,39 @@
 
 .valve-step-btn:active {
     background: #ccc;
+}
+
+/* ── Editable elevation value ─────────────────── */
+
+.editable-value {
+    cursor: pointer;
+    border-bottom: 1px dashed #999;
+    padding-bottom: 1px;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.editable-value:hover {
+    color: #1f78b4;
+    border-color: #1f78b4;
+}
+
+.elev-input {
+    width: 80px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    text-align: right;
+    padding: 1px 4px;
+    border: 1px solid #1f78b4;
+    border-radius: 4px;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(31, 120, 180, 0.18);
+    font-variant-numeric: tabular-nums;
+    -moz-appearance: textfield;
+}
+
+.elev-input::-webkit-inner-spin-button,
+.elev-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }

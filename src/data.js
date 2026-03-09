@@ -6,11 +6,9 @@ import overflowRaw from "../data/overflow.json";
 
 /**
  * Convert our custom JSON format into standard GeoJSON FeatureCollections.
- * - Points (nodes, valves): geographic is [lng, lat]
- * - MultiLineString (pipes): geographic is [[[lng,lat], ...], ...]
- * - MultiPolygon (reservoirs, overflow): geographic is [[[[lng,lat], ...]], ...]
+ * @param {string} coordKey - "geographic" (lng/lat) or "schematic" (x/y grid)
  */
-function toGeoJSON(items) {
+function toGeoJSON(items, coordKey = "geographic") {
   return {
     type: "FeatureCollection",
     features: items.map((item) => ({
@@ -18,14 +16,22 @@ function toGeoJSON(items) {
       properties: { ...item.properties },
       geometry: {
         type: item.geometry.type,
-        coordinates: item.geometry.geographic,
+        coordinates: item.geometry[coordKey],
       },
     })),
   };
 }
 
-export const nodes = toGeoJSON(nodesRaw);
-export const pipes = toGeoJSON(pipesRaw);
-export const valves = toGeoJSON(valvesRaw);
-export const reservoirs = toGeoJSON(reservoirsRaw);
-export const overflow = toGeoJSON(overflowRaw);
+/* Geographic (2D-GEO) */
+export const nodes = toGeoJSON(nodesRaw, "geographic");
+export const pipes = toGeoJSON(pipesRaw, "geographic");
+export const valves = toGeoJSON(valvesRaw, "geographic");
+export const reservoirs = toGeoJSON(reservoirsRaw, "geographic");
+export const overflow = toGeoJSON(overflowRaw, "geographic");
+
+/* Schematic (2D-SCH) */
+export const nodesSch = toGeoJSON(nodesRaw, "schematic");
+export const pipesSch = toGeoJSON(pipesRaw, "schematic");
+export const valvesSch = toGeoJSON(valvesRaw, "schematic");
+export const reservoirsSch = toGeoJSON(reservoirsRaw, "schematic");
+export const overflowSch = toGeoJSON(overflowRaw, "schematic");

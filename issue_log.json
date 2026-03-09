@@ -1,20 +1,38 @@
 [
   {
-    "issue": ""
+    "issue": "The pipe popup doesn't seem to handle negative values very well. All negative values tabulated in the details section should be red. Also, in the bar chart section, negative pressure heads should extend downwards below the elevation line, rather than upwards above it. Note that similar functionality is already set up for the valve popup, so you can refer to that implementation for guidance on how to implement this for the pipe popup as well."
+  },
+  {
+    "issue": "On all popups, when the user clicks down outside the popup, the popup should close."
   },
   {
     "issue": ""
   },
   {
-    "issue": ""
+    "issue": " "
   },
   {
-    "issue": "All the data saved in the data folder of this app has the geographic coordinate data loaded, but the 'schematic' data is currently empty. Id like to revise these five data files so that the user can view the system as a clean network schematic (no geographic coordinates) if they want to. This would be actuated when the user choses the 2D-SCH mode in the 2x2 switch at the bottom-right of the App window. For now, I'd like you to review the data closely and think about how you would add schematic coordinates to the data files. I'd like the nodes to appear on a regularly-spaced grid, and the pipes appearing as either straight or L-lines to connect those nodes, almost like a circuit diagram. I'd like reservoirs and overflow to appear as basic squares at the terminal points of this diagram. This about this hard and let me know if you have any questions or ideas before you make any changes. "
-  },
-  {
-    "issue": ""
+    "issue": " "
   },
   {
     "issue": ""
+  },
+  {
+    "issue": "In the 3D-SCH view, the user should be able to pan as well as rotate the view. If the user wnts to pan, they should hold shift while clicking and dragging. If they want to rotate, they should just click and drag without holding shift."
+  },
+  {
+    "issue": ""
+  },
+  {
+    "issue": "During an overflow evet, the overflow polyon turns red, which is good, but if the user hover over / off it it, it loses its red color, and reverts back to its normal (non-alerting) blue color, which is bad. "
+  },
+  {
+    "issue": "Now for the grand-finale - I'd like there to be a 3D-GEO view mode as well. This would be acessible with the 3D-GEO button in the 2x2 switch. This view would show the same elements as the 2D-GEO view, but with a 3D perspective. Similar to the 3D-SCH view, there would be two seperate 3D 'overlays' - one for elevation and one for total head. The same faint, solid vertical / orthogonal / Z-axis lines would be used to show how the elements from these two overlays are connected. If possible, there would the satelite / aerial base map should still appear below all of this 3D visualization, with the faint, connecting Z-axis line showing where each element 'lands' on the map. Again, this is complicated and there may be many different options for showing 3D data. Please review what options are available (libraries, etc) and propose to me your recommended approach for implementing this. Feel free to ask questions as well."
+  },
+  {
+    "issue": "There should be someway for the user to shift between the 4 view modes (2D-SCH, 2D-GEO, 3D-SCH, 3D-GEO) while still focused / zoomed in on a single element. For example, if they're zoomed in to a given node in 2D-GEO mode, they should be able to chose to shift into 2D-SCH mode, with the view zoomed into / centered on that same node, such that it looks like the node itself never actuall moved, just everythin else around it did. This would allow the user to easily shift between the different perspectives on the same element, without having to manually find and zoom into that element each time they switch modes. Please implement this functionality for all 4 view modes (so that the user can shift from any mode to any other mode while staying focused on the same element)."
+  },
+  {
+    "issue": "The App is still having issues with the lingering highlighting styles, especially in both 2D view modes. When the user hovers over an element, it appears highlighted as expected, but then when they move their mouse away, the element still appears highlighted, which is bad. This issue doesn't happen ALL the time - it's intermittent. Please make sure that when the user moves their mouse away from an element, any highlighting styles are removed, so that the element returns to its normal, non-highlighted appearance."
   }
 ]

@@ -6,6 +6,7 @@ import { fmtNum } from "../../utils/fmt.js";
 const C_TOTAL = "#4A90D9"; // blue   – total head
 const C_ELEV = "#95C13D"; // lime   – elevation
 const C_PRES = "#F5B731"; // amber  – pressure head
+const C_HLOSS = "#D94455"; // soft red – headloss across valve
 
 /* Lighter downstream shades */
 const C_TOTAL_DS = "#89BAE8"; // light blue
@@ -138,25 +139,30 @@ function ValveBarChart({
   const padRight = 52;
   const barW = 22;
   const barGap = 3;
-  const dividerGap = 16; // gap for the vertical divider between DS and US
   const chartH = H - padTop - padBot;
 
   const maxVal = 2500;
   const scale = (v) => (v / maxVal) * chartH;
   const baseY = padTop + chartH;
 
-  /* Layout: [DS_total | DS_stack] | divider | [US_stack | US_total] centered */
-  const pairW = barW * 2 + barGap;
-  const groupW = pairW * 2 + dividerGap;
+  const hasHeadloss = usHead > dsHead;
+
+  /* Layout: 5 bars when headloss exists, 4 otherwise
+     [DS_total | DS_stack | (headloss) | US_stack | US_total]  */
+  const nBars = hasHeadloss ? 5 : 4;
+  const groupW = nBars * barW + (nBars - 1) * barGap;
   const axisRight = W - padRight;
   const chartW = axisRight - padLeft;
   const startX = padLeft + (chartW - groupW) / 2;
 
   const xDS_total = startX;
-  const xDS_stack = xDS_total + barW + barGap;
-  const dividerX = xDS_stack + barW + dividerGap / 2;
-  const xUS_stack = dividerX + dividerGap / 2;
-  const xUS_total = xUS_stack + barW + barGap;
+  const xDS_stack = startX + (barW + barGap);
+  const xHL = hasHeadloss ? startX + 2 * (barW + barGap) : null;
+  const xUS_stack = startX + (hasHeadloss ? 3 : 2) * (barW + barGap);
+  const xUS_total = startX + (hasHeadloss ? 4 : 3) * (barW + barGap);
+
+  /* Dashed divider sits at the centre of the headloss bar (or midpoint of DS/US gap) */
+  const dividerX = hasHeadloss ? xHL + barW / 2 : xDS_stack + barW + barGap / 2;
 
   const hUsElev = scale(usElev);
   const hUsPres = scale(Math.abs(usPres));
@@ -196,8 +202,8 @@ function ValveBarChart({
   /* Elevation marker — dashed line across all bars at elevation level */
   const elevY = baseY - scale(usElev); // same elevation both sides
 
-  const dsCX = xDS_total + pairW / 2;
-  const usCX = xUS_stack + pairW / 2;
+  const dsCX = (xDS_total + xDS_stack + barW) / 2;
+  const usCX = (xUS_stack + xUS_total + barW) / 2;
 
   return (
     <svg
@@ -242,7 +248,7 @@ function ValveBarChart({
         onMouseLeave={() => setHovered(null)}
       />
 
-      {/* Shared elevation bar — spans from DS stack to US stack across the divider */}
+      {/* Shared elevation bar — spans from DS stack to US stack across the middle */}
       <rect
         x={xDS_stack}
         y={baseY - hUsElev}
@@ -254,7 +260,7 @@ function ValveBarChart({
             BAR_HOVER_OPACITY
           : BAR_OPACITY
         }
-        rx="0"
+        rx="3"
         style={{
           cursor: "pointer",
           transition: "y 0.5s ease, height 0.5s ease, fill-opacity 0.15s",
@@ -279,6 +285,25 @@ function ValveBarChart({
         onMouseEnter={() => setHovered("ds_pres")}
         onMouseLeave={() => setHovered(null)}
       />
+
+      {/* Headloss bar — same width/spacing as other bars, between DS and US stacks */}
+      {hasHeadloss && (
+        <rect
+          x={xHL}
+          y={baseY - hUsHead}
+          width={barW}
+          height={hUsHead - hDsHead}
+          fill={C_HLOSS}
+          fillOpacity={hovered === "headloss" ? 0.55 : 0.35}
+          rx="3"
+          style={{
+            cursor: "pointer",
+            transition: "y 0.5s ease, height 0.5s ease, fill-opacity 0.15s",
+          }}
+          onMouseEnter={() => setHovered("headloss")}
+          onMouseLeave={() => setHovered(null)}
+        />
+      )}
 
       {/* Vertical divider between DS and US — starts above elevation */}
       <line
@@ -752,6 +777,10 @@ export default function ValvePopup({
                   unit="FT"
                   value={r.headloss}
                   computed
+                  swatch={C_HLOSS}
+                  highlighted={hovered === "headloss"}
+                  hoverKey="headloss"
+                  onHover={setHovered}
                 />
                 {/* Separator */}
                 <tr>
