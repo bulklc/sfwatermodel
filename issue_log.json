@@ -1,17 +1,5 @@
 [
   {
-    "issue": ""
-  },
-  {
-    "issue": " "
-  },
-  {
-    "issue": " "
-  },
-  {
-    "issue": "Now for the grand-finale - I'd like there to be a 3D-GEO view mode as well. This would be acessible with the 3D-GEO button in the 2x2 switch. This view would show the same elements as the 2D-GEO view, but with a 3D perspective. Similar to the 3D-SCH view, there would be two seperate 3D 'overlays' - one for elevation and one for total head. The same faint, solid vertical / orthogonal / Z-axis lines would be used to show how the elements from these two overlays are connected. If possible, there would the satelite / aerial base map should still appear below all of this 3D visualization, with the faint, connecting Z-axis line showing where each element 'lands' on the map. Again, this is complicated and there may be many different options for showing 3D data. Please review what options are available (libraries, etc) and propose to me your recommended approach for implementing this. Feel free to ask questions as well."
-  },
-  {
     "issue": "There should be someway for the user to shift between the 4 view modes (2D-SCH, 2D-GEO, 3D-SCH, 3D-GEO) while still focused / zoomed in on a single element. For example, if they're zoomed in to a given node in 2D-GEO mode, they should be able to chose to shift into 2D-SCH mode, with the view zoomed into / centered on that same node, such that it looks like the node itself never actuall moved, just everythin else around it did. This would allow the user to easily shift between the different perspectives on the same element, without having to manually find and zoom into that element each time they switch modes. Please implement this functionality for all 4 view modes (so that the user can shift from any mode to any other mode while staying focused on the same element)."
   },
   {

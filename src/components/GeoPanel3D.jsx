@@ -10,11 +10,11 @@ import {
 } from "@react-three/drei";
 import * as THREE from "three";
 import {
-  nodesSch,
-  pipesSch,
-  valvesSch,
-  reservoirsSch,
-  overflowSch,
+  nodes as nodesGeo,
+  pipes as pipesGeo,
+  valves as valvesGeo,
+  reservoirs as reservoirsGeo,
+  overflow as overflowGeo,
 } from "../data.js";
 import NodePopup from "./popups/NodePopup.jsx";
 import PipePopup from "./popups/PipePopup.jsx";
@@ -22,23 +22,210 @@ import ValvePopup from "./popups/ValvePopup.jsx";
 import ReservoirPopup from "./popups/ReservoirPopup.jsx";
 import OverflowPopup from "./popups/OverflowPopup.jsx";
 import { fmtNum } from "../utils/fmt.js";
-import "./SchematicPanel3D.css";
+import "./SchematicPanel3D.css"; // reuse same CSS
 
-/* ───────── constants ───────── */
+/* ═══════════════════════════════════════════════════════════ */
+/*  GEOGRAPHIC PROJECTION                                     */
+/* ═══════════════════════════════════════════════════════════ */
+const CENTER_LNG = -120.28534;
+const CENTER_LAT = 37.80721;
+const DEG_TO_RAD = Math.PI / 180;
+const METERS_PER_DEG_LAT = 111195;
+const METERS_PER_DEG_LNG =
+  METERS_PER_DEG_LAT * Math.cos(CENTER_LAT * DEG_TO_RAD);
+const SCALE = 189; // meters per Three.js unit → ~20 units across data width
+
+/** Convert lng/lat to local Three.js XY (centered on data centroid). */
+function projectGeo(lng, lat) {
+  const x = ((lng - CENTER_LNG) * METERS_PER_DEG_LNG) / SCALE;
+  const y = ((lat - CENTER_LAT) * METERS_PER_DEG_LAT) / SCALE;
+  return [x, y];
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/*  CONSTANTS                                                 */
+/* ═══════════════════════════════════════════════════════════ */
 const ELEV_MIN = 900;
 const ELEV_MAX = 2250;
-const Z_RANGE = 8; // visual Z units
-const scaleZ = (val) => ((val - ELEV_MIN) / (ELEV_MAX - ELEV_MIN)) * Z_RANGE;
+const Z_RANGE = 8;
+const GEO_Z_BASE = 2; // lift elements above ground plane
+const scaleZ = (val) =>
+  GEO_Z_BASE + ((val - ELEV_MIN) / (ELEV_MAX - ELEV_MIN)) * Z_RANGE;
 
 const ELEV_COLOR = "#95C13D";
 const HEAD_COLOR = "#4A90D9";
-const RESERVOIR_Z_BOOST = 0.5; // lift reservoir/overflow boxes above connected elements
-const RESERVOIR_THICKNESS = 0.6; // Z-height of reservoir box
-const OVERFLOW_SIDE = 0.6; // XY side length of overflow square prism
-const OVERFLOW_RADIUS = OVERFLOW_SIDE / 2; // radius for overflow cylinder
-const LERP_SPEED = 8; // exponential lerp rate for smooth transitions
+const RESERVOIR_Z_BOOST = 0.5;
+const RESERVOIR_THICKNESS = 0.6;
+const OVERFLOW_SIDE = 0.6;
+const OVERFLOW_DIAM_FT = 42;
+const OVERFLOW_RADIUS = (OVERFLOW_DIAM_FT * 0.3048) / 2 / SCALE; // 42 ft diameter in scene units
+const LERP_SPEED = 8;
+const BASE_ZOOM = 35; // reference zoom for element sizing
 
-/* ───────── animated dashed pipe ───────── */
+const FACE_THRESHOLD = 0.02;
+const ROTATE_DURATION = 0.3;
+const VIEWCUBE_DURATION = 0.4;
+
+/* Module-level animation state (prefixed to avoid conflict with SchematicPanel3D) */
+let _geoRotatePending = null;
+let _geoViewcubeNav = null;
+let _geoRotateAnim = null;
+
+/* ═══════════════════════════════════════════════════════════ */
+/*  SATELLITE TILE MATH                                       */
+/* ═══════════════════════════════════════════════════════════ */
+function lngLatToTile(lng, lat, zoom) {
+  const n = Math.pow(2, zoom);
+  const x = Math.floor(((lng + 180) / 360) * n);
+  const latRad = lat * DEG_TO_RAD;
+  const y = Math.floor(
+    ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n,
+  );
+  return { x, y };
+}
+
+function tileToLng(tx, zoom) {
+  return (tx / Math.pow(2, zoom)) * 360 - 180;
+}
+
+function tileToLat(ty, zoom) {
+  const n = Math.PI - (2 * Math.PI * ty) / Math.pow(2, zoom);
+  return (Math.atan(Math.sinh(n)) * 180) / Math.PI;
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/*  SATELLITE GROUND PLANE                                    */
+/* ═══════════════════════════════════════════════════════════ */
+function SatelliteGroundPlane({ visible, opacity }) {
+  const [texture, setTexture] = useState(null);
+  const [planeBounds, setPlaneBounds] = useState(null);
+  const matRef = useRef();
+
+  useEffect(() => {
+    const ZOOM = 16;
+    const TILE_SIZE = 256;
+    const PAD = 0.004; // ~400m padding around data extent
+
+    const minLng = -120.307 - PAD;
+    const maxLng = -120.264 + PAD;
+    const minLat = 37.8 - PAD;
+    const maxLat = 37.814 + PAD;
+
+    const tl = lngLatToTile(minLng, maxLat, ZOOM);
+    const br = lngLatToTile(maxLng, minLat, ZOOM);
+
+    const tilesX = br.x - tl.x + 1;
+    const tilesY = br.y - tl.y + 1;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = tilesX * TILE_SIZE;
+    canvas.height = tilesY * TILE_SIZE;
+    const ctx = canvas.getContext("2d");
+
+    let loaded = 0;
+    const total = tilesX * tilesY;
+
+    for (let ty = tl.y; ty <= br.y; ty++) {
+      for (let tx = tl.x; tx <= br.x; tx++) {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        const px = (tx - tl.x) * TILE_SIZE;
+        const py = (ty - tl.y) * TILE_SIZE;
+        img.onload = () => {
+          ctx.drawImage(img, px, py);
+          loaded++;
+          if (loaded === total) {
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.minFilter = THREE.LinearFilter;
+            tex.magFilter = THREE.LinearFilter;
+            tex.colorSpace = THREE.SRGBColorSpace;
+            setTexture(tex);
+            // Geographic bounds of the tile grid
+            const gBounds = {
+              lngW: tileToLng(tl.x, ZOOM),
+              lngE: tileToLng(br.x + 1, ZOOM),
+              latN: tileToLat(tl.y, ZOOM),
+              latS: tileToLat(br.y + 1, ZOOM),
+            };
+            const [x1, y1] = projectGeo(gBounds.lngW, gBounds.latS);
+            const [x2, y2] = projectGeo(gBounds.lngE, gBounds.latN);
+            setPlaneBounds({
+              cx: (x1 + x2) / 2,
+              cy: (y1 + y2) / 2,
+              w: x2 - x1,
+              h: y2 - y1,
+            });
+          }
+        };
+        img.onerror = () => {
+          loaded++;
+          if (loaded === total) {
+            /* If all tiles fail, still set a placeholder so the component
+               renders a dark ground plane instead of nothing */
+            ctx.fillStyle = "#1a2633";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            const tex = new THREE.CanvasTexture(canvas);
+            setTexture(tex);
+            const gBounds = {
+              lngW: tileToLng(tl.x, ZOOM),
+              lngE: tileToLng(br.x + 1, ZOOM),
+              latN: tileToLat(tl.y, ZOOM),
+              latS: tileToLat(br.y + 1, ZOOM),
+            };
+            const [x1, y1] = projectGeo(gBounds.lngW, gBounds.latS);
+            const [x2, y2] = projectGeo(gBounds.lngE, gBounds.latN);
+            setPlaneBounds({
+              cx: (x1 + x2) / 2,
+              cy: (y1 + y2) / 2,
+              w: x2 - x1,
+              h: y2 - y1,
+            });
+          }
+        };
+        // ESRI World Imagery — supports CORS (Google tiles do not)
+        img.src = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${ZOOM}/${ty}/${tx}`;
+      }
+    }
+
+    return () => {
+      if (texture) texture.dispose();
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Animate opacity
+  useFrame(() => {
+    if (matRef.current) {
+      const target = visible ? opacity : 0;
+      const current = matRef.current.opacity;
+      if (Math.abs(current - target) > 0.005) {
+        matRef.current.opacity += (target - current) * 0.15;
+        matRef.current.needsUpdate = true;
+      }
+    }
+  });
+
+  if (!texture || !planeBounds) return null;
+
+  return (
+    <mesh
+      position={[planeBounds.cx, planeBounds.cy, -0.01]}
+      rotation={[0, 0, 0]}
+    >
+      <planeGeometry args={[planeBounds.w, planeBounds.h]} />
+      <meshBasicMaterial
+        ref={matRef}
+        map={texture}
+        transparent
+        opacity={visible ? opacity : 0}
+        depthWrite={false}
+      />
+    </mesh>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/*  ANIMATED DASHED PIPE                                      */
+/* ═══════════════════════════════════════════════════════════ */
 function AnimatedPipe({
   points,
   flow,
@@ -57,7 +244,6 @@ function AnimatedPipe({
   const absFlow = Math.abs(flow);
   const hasFlow = absFlow > 0.001;
 
-  // Animation: lerp line points toward target
   const lerpedPts = useRef(null);
   const targetPts = useRef(points);
   targetPts.current = points;
@@ -71,8 +257,6 @@ function AnimatedPipe({
 
   useFrame((_, dt) => {
     if (!lineRef.current) return;
-
-    // Position lerping
     const target = targetPts.current;
     const n = target.length;
     if (!lerpedPts.current || lerpedPts.current.length !== n * 3) {
@@ -100,13 +284,9 @@ function AnimatedPipe({
       lineRef.current.geometry.setPositions(pts);
       lineRef.current.computeLineDistances();
     }
-
-    // Dash animation
     if (hasFlow) {
       const mat = lineRef.current.material;
-      if (mat) {
-        mat.dashOffset += speed * sign * dt;
-      }
+      if (mat) mat.dashOffset += speed * sign * dt;
     }
   });
 
@@ -148,7 +328,9 @@ function AnimatedPipe({
   );
 }
 
-/* ───────── node sphere ───────── */
+/* ═══════════════════════════════════════════════════════════ */
+/*  NODE SPHERE                                               */
+/* ═══════════════════════════════════════════════════════════ */
 function NodeSphere({
   position,
   color,
@@ -163,12 +345,11 @@ function NodeSphere({
   const [hovered, setHovered] = useState(false);
   const isHL = hovered || highlighted;
 
-  // Animation: lerp position
   const currentPos = useRef(position.slice());
   const targetPos = useRef(position);
   targetPos.current = position;
 
-  useFrame((_, dt) => {
+  useFrame(({ camera }, dt) => {
     if (!meshRef.current) return;
     const alpha = 1 - Math.exp(-LERP_SPEED * dt);
     const c = currentPos.current;
@@ -177,6 +358,9 @@ function NodeSphere({
     c[1] += (t[1] - c[1]) * alpha;
     c[2] += (t[2] - c[2]) * alpha;
     meshRef.current.position.set(c[0], c[1], c[2]);
+    // Scale inversely with zoom so spheres don't dominate when zoomed in
+    const s = BASE_ZOOM / Math.max(camera.zoom, 1);
+    meshRef.current.scale.setScalar(s);
   });
 
   const handleOver = useCallback(
@@ -194,6 +378,7 @@ function NodeSphere({
     },
     [onPointerOut],
   );
+
   return (
     <mesh
       ref={meshRef}
@@ -213,7 +398,9 @@ function NodeSphere({
   );
 }
 
-/* ───────── reservoir box ───────── */
+/* ═══════════════════════════════════════════════════════════ */
+/*  RESERVOIR BOX  (still used for overflow small prisms)     */
+/* ═══════════════════════════════════════════════════════════ */
 function ReservoirBox({
   center,
   size,
@@ -228,7 +415,6 @@ function ReservoirBox({
   const [hovered, setHovered] = useState(false);
   const isHL = hovered || highlighted;
 
-  // Animation: lerp center position
   const currentCenter = useRef(center.slice());
   const targetCenter = useRef(center);
   targetCenter.current = center;
@@ -259,6 +445,7 @@ function ReservoirBox({
     },
     [onPointerOut],
   );
+
   return (
     <mesh
       ref={meshRef}
@@ -278,7 +465,96 @@ function ReservoirBox({
   );
 }
 
-/* ───────── overflow cylinder ───────── */
+/* ═══════════════════════════════════════════════════════════ */
+/*  RESERVOIR POLYGON — actual geographic outline, extruded   */
+/* ═══════════════════════════════════════════════════════════ */
+function ReservoirPolygon({
+  ring,
+  zCenter,
+  thickness,
+  color,
+  opacity,
+  onClick,
+  onPointerOver,
+  onPointerOut,
+  highlighted,
+}) {
+  const meshRef = useRef();
+  const [hovered, setHovered] = useState(false);
+  const isHL = hovered || highlighted;
+
+  // Build extruded geometry from the projected polygon ring
+  const geometry = useMemo(() => {
+    const shape = new THREE.Shape();
+    // ring is array of [x, y] in projected coords
+    shape.moveTo(ring[0][0], ring[0][1]);
+    for (let i = 1; i < ring.length; i++) {
+      shape.lineTo(ring[i][0], ring[i][1]);
+    }
+    shape.closePath();
+    const extrudeSettings = {
+      depth: thickness,
+      bevelEnabled: false,
+    };
+    const geo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+    // ExtrudeGeometry extrudes along +Z from z=0 to z=depth.
+    // We want to center the extrusion on z=0 so we can position via mesh.position.z.
+    geo.translate(0, 0, -thickness / 2);
+    return geo;
+  }, [ring, thickness]);
+
+  // Lerp z position
+  const currentZ = useRef(zCenter);
+  const targetZ = useRef(zCenter);
+  targetZ.current = zCenter;
+
+  useFrame((_, dt) => {
+    if (!meshRef.current) return;
+    const alpha = 1 - Math.exp(-LERP_SPEED * dt);
+    currentZ.current += (targetZ.current - currentZ.current) * alpha;
+    meshRef.current.position.z = currentZ.current;
+  });
+
+  const handleOver = useCallback(
+    (e) => {
+      e.stopPropagation();
+      setHovered(true);
+      onPointerOver?.(e);
+    },
+    [onPointerOver],
+  );
+  const handleOut = useCallback(
+    (e) => {
+      setHovered(false);
+      onPointerOut?.(e);
+    },
+    [onPointerOut],
+  );
+
+  return (
+    <mesh
+      ref={meshRef}
+      geometry={geometry}
+      position={[0, 0, zCenter]}
+      onClick={onClick}
+      onPointerOver={handleOver}
+      onPointerOut={handleOut}
+    >
+      <meshStandardMaterial
+        color={isHL ? "#ffff00" : color}
+        opacity={isHL ? Math.min(opacity * 0.5 + 0.3, 1) : opacity * 0.5}
+        transparent
+        emissive={isHL ? "#ffff00" : "#000000"}
+        emissiveIntensity={isHL ? 0.4 : 0}
+        side={THREE.DoubleSide}
+      />
+    </mesh>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/*  OVERFLOW CYLINDER — true-to-scale shaft                   */
+/* ═══════════════════════════════════════════════════════════ */
 function OverflowCylinder({
   cx,
   cy,
@@ -295,9 +571,10 @@ function OverflowCylinder({
   const [hovered, setHovered] = useState(false);
   const isHL = hovered || highlighted;
 
-  const height = Math.max(zTop - zBottom, 0.02);
+  const height = Math.max(zTop - zBottom, 0.02); // ensure minimum visible height
   const zCenter = (zBottom + zTop) / 2;
 
+  // Lerp Z center
   const currentZ = useRef(zCenter);
   const targetZ = useRef(zCenter);
   targetZ.current = zCenter;
@@ -341,6 +618,7 @@ function OverflowCylinder({
       onPointerOver={handleOver}
       onPointerOut={handleOut}
     >
+      {/* CylinderGeometry: radiusTop, radiusBottom, height=1 (scaled via scale.y), radialSegments */}
       <cylinderGeometry args={[OVERFLOW_RADIUS, OVERFLOW_RADIUS, 1, 32]} />
       <meshStandardMaterial
         color={isHL ? "#ffff00" : color}
@@ -354,7 +632,9 @@ function OverflowCylinder({
   );
 }
 
-/* ───────── animated riser line ───────── */
+/* ═══════════════════════════════════════════════════════════ */
+/*  ANIMATED RISER LINE                                       */
+/* ═══════════════════════════════════════════════════════════ */
 function AnimatedRiser({ x, y, z1, z2, color, lineWidth, opacity }) {
   const lineRef = useRef();
   const currentZ = useRef([z1, z2]);
@@ -400,30 +680,23 @@ function AnimatedRiser({ x, y, z1, z2, color, lineWidth, opacity }) {
   );
 }
 
-/* ───────── ground grid ───────── */
-function GroundGrid() {
-  return (
-    <gridHelper
-      args={[30, 30, "#cbd5e1", "#e2e8f0"]}
-      position={[14, 0, -5]}
-      rotation={[Math.PI / 2, 0, 0]}
-    />
-  );
-}
-
-/* ───────── camera auto-fit on mount ───────── */
+/* ═══════════════════════════════════════════════════════════ */
+/*  CAMERA AUTO-FIT                                           */
+/* ═══════════════════════════════════════════════════════════ */
 function CameraSetup() {
   const { camera } = useThree();
   useEffect(() => {
     camera.up.set(0, 0, 1); // Z is up
-    camera.position.set(14, -18, 14);
-    camera.lookAt(14, 5, 3);
+    camera.position.set(0, -20, 18);
+    camera.lookAt(0, 0, 5);
     camera.updateProjectionMatrix();
   }, [camera]);
   return null;
 }
 
-/* ───────── pointer cursor helper ───────── */
+/* ═══════════════════════════════════════════════════════════ */
+/*  POINTER CURSOR HELPER                                     */
+/* ═══════════════════════════════════════════════════════════ */
 function usePointerCursor() {
   const { gl } = useThree();
   const onOver = useCallback(() => {
@@ -435,48 +708,27 @@ function usePointerCursor() {
   return { onOver, onOut };
 }
 
-/* ───────── face-on detector + rotator ───────── */
-const _dir = new THREE.Vector3();
-const _q = new THREE.Quaternion();
-const FACE_THRESHOLD = 0.02; // how close to axis-aligned counts as face-on
-
-/* Module-level rotation command — bypasses React/R3F boundary entirely */
-let _rotatePending = null; // { angle: number } or null
-
-/* Module-level viewcube navigation for top/bottom (bypasses GizmoHelper's
-   degenerate lookAt when camera.up is parallel to view direction) */
-let _viewcubeNav = null; // { direction: THREE.Vector3 } or null
-
-/* Module-level animation state for smooth rotation */
-let _rotateAnim = null; // { startQ, endQ, startUp, endUp, t, duration } or null
-const ROTATE_DURATION = 0.3; // seconds
-const VIEWCUBE_DURATION = 0.4; // seconds — slightly longer for viewcube nav
-
-/* Custom viewcube wrapper — intercepts top/bottom clicks to avoid
-   GizmoHelper's degenerate quaternion when looking along Z */
+/* ═══════════════════════════════════════════════════════════ */
+/*  CUSTOM VIEWCUBE (intercepts top/bottom for clean nav)     */
+/* ═══════════════════════════════════════════════════════════ */
 function CustomViewcube(props) {
   const { tweenCamera } = useGizmoContext();
 
   const handleClick = useCallback(
     (e) => {
       e.stopPropagation();
-      // Determine the intended camera direction
       let direction;
       if (e.face && e.object.position.lengthSq() < 0.01) {
-        // Face click (FaceCube mesh at origin)
         direction = e.face.normal.clone();
       } else {
-        // Edge or corner click
         direction = e.object.position.clone().normalize();
       }
-
-      // Intercept pure top/bottom face clicks (Z-axis dominant)
       if (
         Math.abs(direction.z) > 0.9 &&
         Math.abs(direction.x) < 0.1 &&
         Math.abs(direction.y) < 0.1
       ) {
-        _viewcubeNav = { direction: direction.clone() };
+        _geoViewcubeNav = { direction: direction.clone() };
       } else {
         tweenCamera(direction);
       }
@@ -491,12 +743,14 @@ function CustomViewcube(props) {
   );
 }
 
-/* ───────── Z-axis overlay (gridlines + labels) ───────── */
-const Z_AXIS_MAX_ELEV = 2400; // gridlines/labels extend beyond data range
+/* ═══════════════════════════════════════════════════════════ */
+/*  Z-AXIS OVERLAY (gridlines + labels)                       */
+/* ═══════════════════════════════════════════════════════════ */
+const Z_AXIS_MAX_ELEV = 2400;
 const Z_AXIS_TICKS = [];
 {
-  const minor = 50; // ft per minor division
-  const major = 100; // ft per major division
+  const minor = 50;
+  const major = 100;
   for (
     let elev = Math.ceil(ELEV_MIN / minor) * minor;
     elev <= Z_AXIS_MAX_ELEV;
@@ -520,15 +774,13 @@ function ZAxisOverlay({ visible, controlsRef }) {
   const hoveredIdxRef = useRef(-1);
   const [, forceUpdate] = useState(0);
   const { camera, invalidate } = useThree();
-  const _dir = useMemo(() => new THREE.Vector3(), []);
-  const _right = useMemo(() => new THREE.Vector3(), []);
-  // Track last computed endpoint coords for the highlight line
+  const _d = useMemo(() => new THREE.Vector3(), []);
+  const _r = useMemo(() => new THREE.Vector3(), []);
   const lastEndpoints = useRef({ lx: 0, ly: 0, rx: 0, ry: 0 });
 
   const majorTicks = useMemo(() => Z_AXIS_TICKS.filter((t) => t.major), []);
   const minorTicks = useMemo(() => Z_AXIS_TICKS.filter((t) => !t.major), []);
 
-  // Pre-allocate dynamic buffers (2 vertices × 3 floats per line)
   const majorPositions = useMemo(
     () => new Float32Array(majorTicks.length * 6),
     [majorTicks],
@@ -537,16 +789,15 @@ function ZAxisOverlay({ visible, controlsRef }) {
     () => new Float32Array(minorTicks.length * 6),
     [minorTicks],
   );
-  const highlightPositions = useMemo(() => new Float32Array(6), []); // single line
+  const highlightPositions = useMemo(() => new Float32Array(6), []);
 
-  const HALF_SPAN = 18; // world units — gridline half-width from center
-  const LABEL_GAP = 3.0; // world units beyond gridline end to label anchor
+  const HALF_SPAN = 15;
+  const LABEL_GAP = 3.0;
 
   const setHovered = useCallback(
     (idx) => {
       if (hoveredIdxRef.current === idx) return;
       hoveredIdxRef.current = idx;
-      // Update label styles immediately
       for (let i = 0; i < leftLabelRefs.current.length; i++) {
         const lEl = leftLabelRefs.current[i];
         const rEl = rightLabelRefs.current[i];
@@ -564,7 +815,6 @@ function ZAxisOverlay({ visible, controlsRef }) {
           rEl.style.fontSize = active ? "15px" : "13px";
         }
       }
-      // Update highlight line
       if (highlightGeoRef.current && highlightMatRef.current) {
         if (idx >= 0 && idx < majorTicks.length) {
           const z = majorTicks[idx].z;
@@ -599,7 +849,6 @@ function ZAxisOverlay({ visible, controlsRef }) {
     if (!groupRef.current) return;
     groupRef.current.visible = op > 0.005;
 
-    // Material opacity
     groupRef.current.traverse((child) => {
       if (child.material) {
         child.material.opacity = op * (child.userData.baseOpacity ?? 1);
@@ -607,7 +856,6 @@ function ZAxisOverlay({ visible, controlsRef }) {
       }
     });
 
-    // Label opacity
     for (const el of leftLabelRefs.current) {
       if (el) {
         el.style.opacity = op;
@@ -621,31 +869,26 @@ function ZAxisOverlay({ visible, controlsRef }) {
       }
     }
 
-    // Highlight line opacity
     if (highlightMatRef.current && hoveredIdxRef.current >= 0) {
       highlightMatRef.current.opacity = op * 0.7;
     }
 
-    // Compute camera's screen-right direction projected onto horizontal plane
-    camera.getWorldDirection(_dir);
-    _dir.z = 0;
-    if (_dir.lengthSq() < 0.001) return; // looking straight up/down
-    _dir.normalize();
-    // right = viewDir × Z-up  →  (-dy, dx, 0)
-    _right.set(-_dir.y, _dir.x, 0);
+    camera.getWorldDirection(_d);
+    _d.z = 0;
+    if (_d.lengthSq() < 0.001) return;
+    _d.normalize();
+    _r.set(-_d.y, _d.x, 0);
 
     const orbitTarget = controlsRef?.current?.target;
-    const cx = orbitTarget?.x ?? 14;
-    const cy = orbitTarget?.y ?? 5;
+    const cx = orbitTarget?.x ?? 0;
+    const cy = orbitTarget?.y ?? 0;
 
-    // Left / right endpoints
-    const lx = cx - _right.x * HALF_SPAN;
-    const ly = cy - _right.y * HALF_SPAN;
-    const rx = cx + _right.x * HALF_SPAN;
-    const ry = cy + _right.y * HALF_SPAN;
+    const lx = cx - _r.x * HALF_SPAN;
+    const ly = cy - _r.y * HALF_SPAN;
+    const rx = cx + _r.x * HALF_SPAN;
+    const ry = cy + _r.y * HALF_SPAN;
     lastEndpoints.current = { lx, ly, rx, ry };
 
-    // Update major gridline positions
     if (majorGeoRef.current) {
       const arr = majorGeoRef.current.attributes.position.array;
       for (let i = 0; i < majorTicks.length; i++) {
@@ -661,7 +904,6 @@ function ZAxisOverlay({ visible, controlsRef }) {
       majorGeoRef.current.attributes.position.needsUpdate = true;
     }
 
-    // Update minor gridline positions
     if (minorGeoRef.current) {
       const arr = minorGeoRef.current.attributes.position.array;
       for (let i = 0; i < minorTicks.length; i++) {
@@ -677,7 +919,6 @@ function ZAxisOverlay({ visible, controlsRef }) {
       minorGeoRef.current.attributes.position.needsUpdate = true;
     }
 
-    // Update highlight line if hovered
     if (
       highlightGeoRef.current &&
       hoveredIdxRef.current >= 0 &&
@@ -694,11 +935,10 @@ function ZAxisOverlay({ visible, controlsRef }) {
       highlightGeoRef.current.attributes.position.needsUpdate = true;
     }
 
-    // Update label group positions (left labels at left end, right labels at right end)
-    const lgx = cx - _right.x * (HALF_SPAN + LABEL_GAP);
-    const lgy = cy - _right.y * (HALF_SPAN + LABEL_GAP);
-    const rgx = cx + _right.x * (HALF_SPAN + LABEL_GAP);
-    const rgy = cy + _right.y * (HALF_SPAN + LABEL_GAP);
+    const lgx = cx - _r.x * (HALF_SPAN + LABEL_GAP);
+    const lgy = cy - _r.y * (HALF_SPAN + LABEL_GAP);
+    const rgx = cx + _r.x * (HALF_SPAN + LABEL_GAP);
+    const rgy = cy + _r.y * (HALF_SPAN + LABEL_GAP);
     if (leftGroupRef.current) leftGroupRef.current.position.set(lgx, lgy, 0);
     if (rightGroupRef.current) rightGroupRef.current.position.set(rgx, rgy, 0);
   });
@@ -721,7 +961,6 @@ function ZAxisOverlay({ visible, controlsRef }) {
 
   return (
     <group ref={groupRef} visible={false} renderOrder={-1}>
-      {/* Major gridlines */}
       <lineSegments>
         <bufferGeometry ref={majorGeoRef}>
           <bufferAttribute
@@ -740,7 +979,6 @@ function ZAxisOverlay({ visible, controlsRef }) {
         />
       </lineSegments>
 
-      {/* Minor gridlines */}
       <lineSegments>
         <bufferGeometry ref={minorGeoRef}>
           <bufferAttribute
@@ -759,7 +997,6 @@ function ZAxisOverlay({ visible, controlsRef }) {
         />
       </lineSegments>
 
-      {/* Highlight gridline (shown on hover) */}
       <line>
         <bufferGeometry ref={highlightGeoRef}>
           <bufferAttribute
@@ -780,7 +1017,6 @@ function ZAxisOverlay({ visible, controlsRef }) {
         />
       </line>
 
-      {/* Left labels (right-aligned, just beyond left end of gridlines) */}
       <group ref={leftGroupRef}>
         {majorTicks.map(({ elev, z }, idx) => (
           <Html key={`l-${elev}`} position={[0, 0, z]} zIndexRange={[0, 0]}>
@@ -805,7 +1041,6 @@ function ZAxisOverlay({ visible, controlsRef }) {
         ))}
       </group>
 
-      {/* Right labels (left-aligned, just beyond right end of gridlines) */}
       <group ref={rightGroupRef}>
         {majorTicks.map(({ elev, z }, idx) => (
           <Html key={`r-${elev}`} position={[0, 0, z]} zIndexRange={[0, 0]}>
@@ -833,6 +1068,11 @@ function ZAxisOverlay({ visible, controlsRef }) {
   );
 }
 
+/* ═══════════════════════════════════════════════════════════ */
+/*  FACE-ON DETECTOR + ROTATOR                                */
+/* ═══════════════════════════════════════════════════════════ */
+const _faceDir = new THREE.Vector3();
+
 function FaceOnDetector({ controlsRef, onFaceOnChange, onSideFaceOnChange }) {
   const { camera, invalidate } = useThree();
   const wasFaceOn = useRef(false);
@@ -842,18 +1082,14 @@ function FaceOnDetector({ controlsRef, onFaceOnChange, onSideFaceOnChange }) {
     if (!controlsRef.current) return;
     const controls = controlsRef.current;
 
-    // 1a. Start viewcube navigation (top/bottom) if pending
-    if (_viewcubeNav) {
-      const { direction } = _viewcubeNav;
-      _viewcubeNav = null;
-
+    // Viewcube navigation (top/bottom)
+    if (_geoViewcubeNav) {
+      const { direction } = _geoViewcubeNav;
+      _geoViewcubeNav = null;
       const target = controls.target;
       const radius = camera.position.distanceTo(target);
       const endPos = direction.clone().multiplyScalar(radius).add(target);
-      // For top view (looking down -Z), up should be (0,1,0).
-      // For bottom view (looking up +Z), up should be (0,1,0) as well.
       const endUp = new THREE.Vector3(0, 1, 0);
-
       const startQ = camera.quaternion.clone();
       const tempCam = camera.clone();
       tempCam.up.copy(endUp);
@@ -861,8 +1097,7 @@ function FaceOnDetector({ controlsRef, onFaceOnChange, onSideFaceOnChange }) {
       tempCam.lookAt(target);
       tempCam.updateMatrixWorld(true);
       const endQ = tempCam.quaternion.clone();
-
-      _rotateAnim = {
+      _geoRotateAnim = {
         startPos: camera.position.clone(),
         endPos,
         startUp: camera.up.clone(),
@@ -874,19 +1109,16 @@ function FaceOnDetector({ controlsRef, onFaceOnChange, onSideFaceOnChange }) {
       };
     }
 
-    // 1b. Start a new animated rotation if pending
-    if (_rotatePending) {
-      const { angle: angleDeg } = _rotatePending;
-      _rotatePending = null;
-
+    // Start a new animated rotation if pending
+    if (_geoRotatePending) {
+      const { angle: angleDeg } = _geoRotatePending;
+      _geoRotatePending = null;
       const target = controls.target;
       const dir = new THREE.Vector3()
         .subVectors(target, camera.position)
         .normalize();
       const angle = THREE.MathUtils.degToRad(angleDeg);
       const q = new THREE.Quaternion().setFromAxisAngle(dir, angle);
-
-      // Compute target camera.up (snapped to axis)
       const targetUp = camera.up.clone().applyQuaternion(q).normalize();
       const ux = Math.abs(targetUp.x),
         uy = Math.abs(targetUp.y),
@@ -894,14 +1126,9 @@ function FaceOnDetector({ controlsRef, onFaceOnChange, onSideFaceOnChange }) {
       if (ux >= uy && ux >= uz) targetUp.set(Math.sign(targetUp.x), 0, 0);
       else if (uy >= ux && uy >= uz) targetUp.set(0, Math.sign(targetUp.y), 0);
       else targetUp.set(0, 0, Math.sign(targetUp.z));
-
-      // Compute target camera position
       const offset = new THREE.Vector3().subVectors(camera.position, target);
       const targetOffset = offset.clone().applyQuaternion(q);
-
-      // Capture start quaternion from current camera orientation
       const startQ = camera.quaternion.clone();
-      // Compute end quaternion by placing camera at target position
       const endPos = target.clone().add(targetOffset);
       const tempCam = camera.clone();
       tempCam.up.copy(targetUp);
@@ -909,8 +1136,7 @@ function FaceOnDetector({ controlsRef, onFaceOnChange, onSideFaceOnChange }) {
       tempCam.lookAt(target);
       tempCam.updateMatrixWorld(true);
       const endQ = tempCam.quaternion.clone();
-
-      _rotateAnim = {
+      _geoRotateAnim = {
         startPos: camera.position.clone(),
         endPos,
         startUp: camera.up.clone(),
@@ -922,56 +1148,50 @@ function FaceOnDetector({ controlsRef, onFaceOnChange, onSideFaceOnChange }) {
       };
     }
 
-    // 2. Animate rotation in progress
-    if (_rotateAnim) {
-      _rotateAnim.t += delta;
-      const raw = Math.min(_rotateAnim.t / _rotateAnim.duration, 1);
-      // Smooth ease-in-out
+    // Animate rotation in progress
+    if (_geoRotateAnim) {
+      _geoRotateAnim.t += delta;
+      const raw = Math.min(_geoRotateAnim.t / _geoRotateAnim.duration, 1);
       const t = raw < 0.5 ? 2 * raw * raw : 1 - Math.pow(-2 * raw + 2, 2) / 2;
-
-      camera.position.lerpVectors(_rotateAnim.startPos, _rotateAnim.endPos, t);
+      camera.position.lerpVectors(
+        _geoRotateAnim.startPos,
+        _geoRotateAnim.endPos,
+        t,
+      );
       camera.up
-        .lerpVectors(_rotateAnim.startUp, _rotateAnim.endUp, t)
+        .lerpVectors(_geoRotateAnim.startUp, _geoRotateAnim.endUp, t)
         .normalize();
       camera.quaternion.slerpQuaternions(
-        _rotateAnim.startQ,
-        _rotateAnim.endQ,
+        _geoRotateAnim.startQ,
+        _geoRotateAnim.endQ,
         t,
       );
       camera.updateMatrixWorld(true);
       controls.update();
       invalidate();
-
       if (raw >= 1) {
-        // Snap to exact final values
-        camera.position.copy(_rotateAnim.endPos);
-        camera.up.copy(_rotateAnim.endUp);
+        camera.position.copy(_geoRotateAnim.endPos);
+        camera.up.copy(_geoRotateAnim.endUp);
         camera.lookAt(controls.target);
         camera.updateMatrixWorld(true);
         controls.update();
-        _rotateAnim = null;
+        _geoRotateAnim = null;
       }
     }
 
-    // 3. Fix degenerate camera.up when looking along Z-axis (top/bottom)
-    //    GizmoHelper resets camera.up to (0,0,1) after animation, which is
-    //    parallel to the view direction for top/bottom views → undefined roll.
-    _dir.subVectors(controls.target, camera.position).normalize();
-    const upDotView = Math.abs(camera.up.dot(_dir));
+    // Fix degenerate camera.up when looking along Z-axis
+    _faceDir.subVectors(controls.target, camera.position).normalize();
+    const upDotView = Math.abs(camera.up.dot(_faceDir));
     if (upDotView > 0.99) {
-      // Degenerate: camera.up is ~parallel to view direction.
-      // Use (0,1,0) for top view so X→right, Y→up matching 2D schematic layout.
-      if (_dir.z < 0)
-        camera.up.set(0, 1, 0); // top view
-      else camera.up.set(0, 1, 0); // bottom view
+      camera.up.set(0, 1, 0);
       controls.update();
       invalidate();
     }
 
-    // 4. Detect face-on
-    const ax = Math.abs(_dir.x),
-      ay = Math.abs(_dir.y),
-      az = Math.abs(_dir.z);
+    // Detect face-on
+    const ax = Math.abs(_faceDir.x),
+      ay = Math.abs(_faceDir.y),
+      az = Math.abs(_faceDir.z);
     const isFaceOn =
       (ax > 1 - FACE_THRESHOLD && ay < FACE_THRESHOLD && az < FACE_THRESHOLD) ||
       (ay > 1 - FACE_THRESHOLD && ax < FACE_THRESHOLD && az < FACE_THRESHOLD) ||
@@ -982,8 +1202,6 @@ function FaceOnDetector({ controlsRef, onFaceOnChange, onSideFaceOnChange }) {
       onFaceOnChange(isFaceOn);
     }
 
-    // Side face-on = looking horizontally (Z component near zero)
-    // Covers 4 face-on views (Front/Back/Left/Right) AND 4 edge views
     const isSideFaceOn = az < FACE_THRESHOLD;
     if (isSideFaceOn !== wasSideFaceOn.current) {
       wasSideFaceOn.current = isSideFaceOn;
@@ -994,10 +1212,10 @@ function FaceOnDetector({ controlsRef, onFaceOnChange, onSideFaceOnChange }) {
   return null;
 }
 
-/* ═══════════════════════════════════════════════ */
-/*  SCENE CONTENT – renders inside <Canvas>       */
-/* ═══════════════════════════════════════════════ */
-function SceneContent({
+/* ═══════════════════════════════════════════════════════════ */
+/*  SCENE CONTENT — renders inside <Canvas>                   */
+/* ═══════════════════════════════════════════════════════════ */
+function GeoSceneContent({
   hydraulicResults: r,
   valveOverrides,
   onValveOverrideChange,
@@ -1013,7 +1231,7 @@ function SceneContent({
   setPopup,
 }) {
   const [hoveredElement, setHoveredElement] = useState(null);
-  const { camera, size, gl } = useThree();
+  const { camera, gl } = useThree();
   const hoverIn = useCallback(
     (id) => {
       setHoveredElement(id);
@@ -1045,7 +1263,6 @@ function SceneContent({
   );
   const getNodeElev = useCallback(
     (name, fallbackElev) => {
-      // Check for elev override
       const ov = elevOverrides?.[name];
       if (ov != null) return ov;
       return fallbackElev;
@@ -1053,11 +1270,12 @@ function SceneContent({
     [elevOverrides],
   );
 
-  /* ── Build element arrays ── */
+  /* ── Build element arrays using geographic data ── */
   const nodeElements = useMemo(() => {
-    return nodesSch.features.map((f) => {
+    return nodesGeo.features.map((f) => {
       const name = f.properties.name;
-      const [x, y] = f.geometry.coordinates;
+      const [lng, lat] = f.geometry.coordinates;
+      const [x, y] = projectGeo(lng, lat);
       const elev = getNodeElev(name, f.properties.elev);
       const head = getNodeHead(name);
       return { name, x, y, elev, head, properties: f.properties };
@@ -1065,83 +1283,54 @@ function SceneContent({
   }, [getNodeElev, getNodeHead]);
 
   const valveElements = useMemo(() => {
-    return valvesSch.features.map((f) => {
+    return valvesGeo.features.map((f) => {
       const name = f.properties.name;
-      const [x, y] = f.geometry.coordinates;
+      const [lng, lat] = f.geometry.coordinates;
+      const [x, y] = projectGeo(lng, lat);
       const elev = f.properties.elev;
-      // For valves, we can compute head from upstream/downstream
       const vRes = r?.valves?.[name];
       const head = vRes ? (vRes.us_head + vRes.ds_head) / 2 : null;
       return { name, x, y, elev, head, properties: f.properties, vRes };
     });
   }, [r]);
 
-  // All node + valve positions for reservoir proximity expansion
-  const allNodeValvePositions = useMemo(() => {
-    const pts = [];
-    for (const f of nodesSch.features) {
-      const [x, y] = f.geometry.coordinates;
-      pts.push({ x, y, elev: f.properties.elev });
-    }
-    for (const f of valvesSch.features) {
-      const [x, y] = f.geometry.coordinates;
-      pts.push({ x, y, elev: f.properties.elev });
-    }
-    return pts;
-  }, []);
-
   const reservoirElements = useMemo(() => {
-    return reservoirsSch.features.map((f) => {
+    return reservoirsGeo.features.map((f) => {
       const name = f.properties.name;
       const resElev = f.properties.elev;
       const elev = getNodeElev(name, resElev);
       const head = getNodeHead(name);
-      const ring = f.geometry.coordinates[0][0];
+
+      // Extract geographic polygon ring and project to local XY
+      const rawRing =
+        f.geometry.type === "MultiPolygon" ?
+          f.geometry.coordinates[0][0]
+        : f.geometry.coordinates[0];
+
+      // Project all vertices to local XY
+      const projectedRing = rawRing.map(([lng, lat]) => projectGeo(lng, lat));
+
       let minX = Infinity,
         maxX = -Infinity,
         minY = Infinity,
         maxY = -Infinity;
-      for (const [px, py] of ring) {
-        if (px < minX) minX = px;
-        if (px > maxX) maxX = px;
-        if (py < minY) minY = py;
-        if (py > maxY) maxY = py;
+      for (const [x, y] of projectedRing) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
       }
-      // Expand bbox to cover nearby nodes/valves at similar elevation.
-      // This positions the reservoir box "over" its inlet infrastructure.
-      const origW = maxX - minX,
-        origH = maxY - minY;
+
       const ctrX = (minX + maxX) / 2,
         ctrY = (minY + maxY) / 2;
-      const maxDist = Math.max(Math.max(origW, origH) * 1.25, 2.5);
-      const elevThresh = 150; // ft
-      let eMinX = minX,
-        eMaxX = maxX,
-        eMinY = minY,
-        eMaxY = maxY;
-      for (const el of allNodeValvePositions) {
-        const d = Math.hypot(el.x - ctrX, el.y - ctrY);
-        if (d <= maxDist && Math.abs(el.elev - resElev) <= elevThresh) {
-          eMinX = Math.min(eMinX, el.x);
-          eMaxX = Math.max(eMaxX, el.x);
-          eMinY = Math.min(eMinY, el.y);
-          eMaxY = Math.max(eMaxY, el.y);
-        }
-      }
+
       return {
         name,
         elev,
         head,
-        cx: (eMinX + eMaxX) / 2,
-        cy: (eMinY + eMaxY) / 2,
-        w: eMaxX - eMinX + 0.6, // pad so box visually encloses nodes
-        h: eMaxY - eMinY + 0.6,
-        eMinX: eMinX - 0.3, // padded expanded bounds (unused for risers)
-        eMaxX: eMaxX + 0.3,
-        eMinY: eMinY - 0.3,
-        eMaxY: eMaxY + 0.3,
-        // Original polygon bounds — used for riser detection so only
-        // pipe endpoints at the actual reservoir edge get risers.
+        cx: ctrX,
+        cy: ctrY,
+        ring: projectedRing,
         oMinX: minX - 0.3,
         oMaxX: maxX + 0.3,
         oMinY: minY - 0.3,
@@ -1149,26 +1338,30 @@ function SceneContent({
         properties: f.properties,
       };
     });
-  }, [getNodeElev, getNodeHead, allNodeValvePositions]);
+  }, [getNodeElev, getNodeHead]);
 
   const overflowElements = useMemo(() => {
-    return overflowSch.features.map((f) => {
+    return overflowGeo.features.map((f) => {
       const name = f.properties.name;
       const weirCrestElev = getNodeElev(name, f.properties.elev); // overflow polygon elev = weir crest
       const head = getNodeHead(name);
       const isActive = r?.overflow?.[name]?.active;
 
       // The overflow junction node has the shaft bottom elevation
-      const ovNode = nodesSch.features.find(
+      const ovNode = nodesGeo.features.find(
         (nf) => nf.properties.name === name,
       );
       const nodeElev = ovNode ? ovNode.properties.elev : weirCrestElev;
+      let ovX = 0,
+        ovY = 0;
+      if (ovNode) {
+        const [lng, lat] = ovNode.geometry.coordinates;
+        [ovX, ovY] = projectGeo(lng, lat);
+      }
 
-      // Find the nearest reservoir to position this overflow relative to it
+      // Find nearest reservoir
       let nearestRes = null;
       let nearestDist = Infinity;
-      const ovX = ovNode ? ovNode.geometry.coordinates[0] : 0;
-      const ovY = ovNode ? ovNode.geometry.coordinates[1] : 0;
       for (const res of reservoirElements) {
         const d = Math.hypot(ovX - res.cx, ovY - res.cy);
         if (d < nearestDist) {
@@ -1177,17 +1370,13 @@ function SceneContent({
         }
       }
 
-      const cx = ovX;
-      const cy = ovY;
-
       return {
         name,
         nodeElev, // bottom of shaft (junction elevation)
         weirCrestElev, // top of shaft (weir crest elevation)
-        elev: weirCrestElev, // kept for backward compat
         head,
-        cx,
-        cy,
+        cx: ovX,
+        cy: ovY,
         parentRes: nearestRes,
         isActive,
         properties: f.properties,
@@ -1195,12 +1384,11 @@ function SceneContent({
     });
   }, [getNodeElev, getNodeHead, r, reservoirElements]);
 
-  // Build a lookup of valve XY → displayed head Z so pipes can snap to them
+  // Valve head/elev Z lookup for pipe endpoint snapping
   const valveHeadZByXY = useMemo(() => {
     const map = new Map();
     for (const v of valveElements) {
       if (v.head != null) {
-        // Key by rounded XY to handle floating point
         const key = `${v.x.toFixed(4)},${v.y.toFixed(4)}`;
         map.set(key, scaleZ(v.head));
       }
@@ -1217,19 +1405,22 @@ function SceneContent({
     return map;
   }, [valveElements]);
 
-  // Build name→[x,y] lookup for pipe endpoint matching (schematic coords).
-  // Used to determine whether a pipe's coordinates run us→ds or ds→us.
+  // Build name→[x,y] lookup for pipe endpoint matching (projected coords).
+  // Used to determine whether a pipe's GeoJSON coordinates run us→ds or ds→us.
   const nodeCoordMap3D = useMemo(() => {
     const m = new Map();
-    for (const fc of [nodesSch, valvesSch]) {
+    for (const fc of [nodesGeo, valvesGeo]) {
       if (!fc?.features) continue;
       for (const f of fc.features) {
         const name = f.properties?.name;
         const c = f.geometry?.coordinates;
-        if (name && c) m.set(name, [c[0], c[1]]);
+        if (name && c) {
+          const [x, y] = projectGeo(c[0], c[1]);
+          m.set(name, [x, y]);
+        }
       }
     }
-    for (const fc of [reservoirsSch, overflowSch]) {
+    for (const fc of [reservoirsGeo, overflowGeo]) {
       if (!fc?.features) continue;
       for (const f of fc.features) {
         const name = f.properties?.name;
@@ -1239,14 +1430,15 @@ function SceneContent({
         if (!ring?.length) continue;
         const cx = ring.reduce((s, p) => s + p[0], 0) / ring.length;
         const cy = ring.reduce((s, p) => s + p[1], 0) / ring.length;
-        m.set(name, [cx, cy]);
+        const [px, py] = projectGeo(cx, cy);
+        m.set(name, [px, py]);
       }
     }
     return m;
   }, []);
 
   const pipeElements = useMemo(() => {
-    return pipesSch.features.map((f) => {
+    return pipesGeo.features.map((f) => {
       const name = f.properties.name;
       const pRes = r?.pipes?.[name];
       const flow = pRes?.flow || 0;
@@ -1255,16 +1447,18 @@ function SceneContent({
       const usHead = pRes?.us_head ?? 0;
       const dsHead = pRes?.ds_head ?? 0;
 
-      // Build 3D points from 2D schematic line
-      const coords =
+      // Build 3D points from geographic line
+      const rawCoords =
         f.geometry.type === "MultiLineString" ?
           f.geometry.coordinates[0]
         : f.geometry.coordinates;
+
+      const coords = rawCoords.map(([lng, lat]) => projectGeo(lng, lat));
       const n = coords.length;
+
       const elevPoints = coords.map(([x, y], i) => {
         const t = n > 1 ? i / (n - 1) : 0;
         let z = scaleZ(usElev + (dsElev - usElev) * t);
-        // Snap endpoints to valve displayed elevation
         if (i === 0 || i === n - 1) {
           const key = `${x.toFixed(4)},${y.toFixed(4)}`;
           const vz = valveElevZByXY.get(key);
@@ -1275,7 +1469,6 @@ function SceneContent({
       const headPoints = coords.map(([x, y], i) => {
         const t = n > 1 ? i / (n - 1) : 0;
         let z = scaleZ(usHead + (dsHead - usHead) * t);
-        // Snap endpoints to valve displayed head
         if (i === 0 || i === n - 1) {
           const key = `${x.toFixed(4)},${y.toFixed(4)}`;
           const vz = valveHeadZByXY.get(key);
@@ -1284,6 +1477,9 @@ function SceneContent({
         return [x, y, z];
       });
       // Determine animation direction from EPANET flow sign.
+      // flow > 0 → water travels us_node → ds_node.
+      // Check whether the GeoJSON first coordinate is at us_node or ds_node
+      // then set flowSign so dashes travel from higher head to lower head.
       const usNode = f.properties.us_node;
       const dsNode = f.properties.ds_node;
       const usCoord = nodeCoordMap3D.get(usNode);
@@ -1313,6 +1509,7 @@ function SceneContent({
           Math.hypot(lastXY[0] - dsCoord[0], lastXY[1] - dsCoord[1]) <=
           Math.hypot(firstXY[0] - dsCoord[0], firstXY[1] - dsCoord[1]);
       }
+      // flowSign: -1 = dashes move first→last, +1 = dashes move last→first
       const flowGoesUsToDs = flow > 0;
       const flowSign = flowGoesUsToDs === coordsGoUsToDs ? -1 : 1;
 
@@ -1328,9 +1525,7 @@ function SceneContent({
     });
   }, [r, valveHeadZByXY, valveElevZByXY, nodeCoordMap3D]);
 
-  // Vertical risers: for each pipe endpoint or valve that sits under a
-  // reservoir's XY footprint, draw a vertical line from the element up to
-  // the reservoir bottom.  We compute separate risers for elev and head.
+  // Vertical risers: pipe endpoints / valves under reservoirs → reservoir bottom
   const reservoirRisers = useMemo(() => {
     const risers = { elev: [], head: [] };
     for (const res of reservoirElements) {
@@ -1341,13 +1536,9 @@ function SceneContent({
           scaleZ(res.head) + RESERVOIR_Z_BOOST - RESERVOIR_THICKNESS / 2
         : null;
 
-      // Use ORIGINAL polygon bounds for riser detection so only
-      // elements at the reservoir boundary get risers, not everything
-      // under the expanded visual box (e.g. sluice gates, branch nodes).
       const isInside = (x, y) =>
         x >= res.oMinX && x <= res.oMaxX && y >= res.oMinY && y <= res.oMaxY;
 
-      // Check valve positions
       for (const v of valveElements) {
         if (isInside(v.x, v.y)) {
           const vElevZ = scaleZ(v.elev);
@@ -1375,7 +1566,6 @@ function SceneContent({
         }
       }
 
-      // Check pipe endpoints
       for (const p of pipeElements) {
         for (const overlay of ["elev", "head"]) {
           const pts = overlay === "elev" ? p.elevPoints : p.headPoints;
@@ -1398,6 +1588,85 @@ function SceneContent({
     }
     return risers;
   }, [reservoirElements, valveElements, pipeElements]);
+
+  // Drop lines: from each node/valve elevation position down to Z=0 (ground plane)
+  const dropLines = useMemo(() => {
+    const lines = [];
+    for (const n of nodeElements) {
+      lines.push({
+        key: `drop-n-${n.name}`,
+        x: n.x,
+        y: n.y,
+        zElev: scaleZ(n.elev),
+        zHead: n.head != null ? scaleZ(n.head) : null,
+      });
+    }
+    for (const v of valveElements) {
+      lines.push({
+        key: `drop-v-${v.name}`,
+        x: v.x,
+        y: v.y,
+        zElev: scaleZ(v.elev),
+        zHead: v.head != null ? scaleZ(v.head) : null,
+      });
+    }
+    // Reservoir perimeter — sample every Nth vertex for drop lines
+    for (const res of reservoirElements) {
+      const zElev =
+        scaleZ(res.elev) + RESERVOIR_Z_BOOST - RESERVOIR_THICKNESS / 2;
+      const zHead =
+        res.head != null ?
+          scaleZ(res.head) + RESERVOIR_Z_BOOST - RESERVOIR_THICKNESS / 2
+        : null;
+      const ring = res.ring;
+      const step = Math.max(1, Math.floor(ring.length / 12)); // ~12 drop lines per reservoir
+      for (let i = 0; i < ring.length; i += step) {
+        lines.push({
+          key: `drop-r-${res.name}-${i}`,
+          x: ring[i][0],
+          y: ring[i][1],
+          zElev,
+          zHead,
+        });
+      }
+    }
+    return lines;
+  }, [nodeElements, valveElements, reservoirElements]);
+
+  // Overlay connecting risers: faint lines between elevation and head positions
+  // for each node/valve (only when both overlays are visible)
+  const overlayConnectors = useMemo(() => {
+    const lines = [];
+    for (const n of nodeElements) {
+      if (n.head == null) continue;
+      const zElev = scaleZ(n.elev);
+      const zHead = scaleZ(n.head);
+      if (Math.abs(zHead - zElev) > 0.05) {
+        lines.push({
+          key: `conn-n-${n.name}`,
+          x: n.x,
+          y: n.y,
+          z1: zElev,
+          z2: zHead,
+        });
+      }
+    }
+    for (const v of valveElements) {
+      if (v.head == null) continue;
+      const zElev = scaleZ(v.elev);
+      const zHead = scaleZ(v.head);
+      if (Math.abs(zHead - zElev) > 0.05) {
+        lines.push({
+          key: `conn-v-${v.name}`,
+          x: v.x,
+          y: v.y,
+          z1: zElev,
+          z2: zHead,
+        });
+      }
+    }
+    return lines;
+  }, [nodeElements, valveElements]);
 
   /* ── Click helpers ── */
   const openPopup = (type, name, properties) => (e) => {
@@ -1439,8 +1708,53 @@ function SceneContent({
       <directionalLight position={[10, -10, 15]} intensity={0.8} />
       <directionalLight position={[-5, 10, 10]} intensity={0.3} />
 
-      <GroundGrid />
+      {/* Satellite basemap at Z=0 */}
+      <SatelliteGroundPlane visible={layerVis.basemap} opacity={0.85} />
+
       <ZAxisOverlay visible={isSideFaceOn} controlsRef={controlsRef} />
+
+      {/* ═══ DROP LINES — elements to ground plane ═══ */}
+      {(elevOpacity > 0 || headOpacity > 0) &&
+        dropLines.map((dl) => {
+          // Use the tallest visible overlay as the top of the drop line
+          let z2 = 0;
+          if (elevOpacity > 0 && headOpacity > 0) {
+            z2 = Math.max(dl.zElev, dl.zHead ?? dl.zElev);
+          } else if (headOpacity > 0 && dl.zHead != null) {
+            z2 = dl.zHead;
+          } else {
+            z2 = dl.zElev;
+          }
+          const opacity = Math.max(elevOpacity, headOpacity) * 0.2;
+          return (
+            <AnimatedRiser
+              key={dl.key}
+              x={dl.x}
+              y={dl.y}
+              z1={0}
+              z2={z2}
+              color="#94a3b8"
+              lineWidth={1}
+              opacity={opacity}
+            />
+          );
+        })}
+
+      {/* ═══ OVERLAY CONNECTORS — elev ↔ head ═══ */}
+      {elevOpacity > 0 &&
+        headOpacity > 0 &&
+        overlayConnectors.map((c) => (
+          <AnimatedRiser
+            key={c.key}
+            x={c.x}
+            y={c.y}
+            z1={c.z1}
+            z2={c.z2}
+            color="#94a3b8"
+            lineWidth={1}
+            opacity={Math.min(elevOpacity, headOpacity) * 0.35}
+          />
+        ))}
 
       {/* ═══ ELEVATION OVERLAY ═══ */}
       {elevOpacity > 0 && (
@@ -1454,11 +1768,7 @@ function SceneContent({
                 color="#333"
                 radius={0.15}
                 opacity={elevOpacity}
-                onClick={openPopup("node", n.name, n.properties, [
-                  n.x,
-                  n.y,
-                  scaleZ(n.elev),
-                ])}
+                onClick={openPopup("node", n.name, n.properties)}
                 onPointerOver={() => hoverIn("n:" + n.name)}
                 onPointerOut={hoverOut}
                 highlighted={hoveredElement === "n:" + n.name}
@@ -1474,11 +1784,7 @@ function SceneContent({
                 color={valveColor(v)}
                 radius={0.2}
                 opacity={elevOpacity}
-                onClick={openPopup("valve", v.name, v.properties, [
-                  v.x,
-                  v.y,
-                  scaleZ(v.elev),
-                ])}
+                onClick={openPopup("valve", v.name, v.properties)}
                 onPointerOver={() => hoverIn("v:" + v.name)}
                 onPointerOut={hoverOut}
                 highlighted={hoveredElement === "v:" + v.name}
@@ -1490,17 +1796,14 @@ function SceneContent({
             reservoirElements.map((res) => {
               const z = scaleZ(res.elev) + RESERVOIR_Z_BOOST;
               return (
-                <ReservoirBox
+                <ReservoirPolygon
                   key={`elev-r-${res.name}`}
-                  center={[res.cx, res.cy, z]}
-                  size={[res.w, res.h, RESERVOIR_THICKNESS]}
+                  ring={res.ring}
+                  zCenter={z}
+                  thickness={RESERVOIR_THICKNESS}
                   color="#a6cde3"
                   opacity={elevOpacity}
-                  onClick={openPopup("reservoir", res.name, res.properties, [
-                    res.cx,
-                    res.cy,
-                    z,
-                  ])}
+                  onClick={openPopup("reservoir", res.name, res.properties)}
                   onPointerOver={() => hoverIn("r:" + res.name)}
                   onPointerOut={hoverOut}
                   highlighted={hoveredElement === "r:" + res.name}
@@ -1522,11 +1825,7 @@ function SceneContent({
                   zTop={zTop}
                   color={ov.isActive ? "#e74c3c" : "#a6cde3"}
                   opacity={elevOpacity}
-                  onClick={openPopup("overflow", ov.name, ov.properties, [
-                    ov.cx,
-                    ov.cy,
-                    (zBottom + zTop) / 2,
-                  ])}
+                  onClick={openPopup("overflow", ov.name, ov.properties)}
                   onPointerOver={() => hoverIn("o:" + ov.name)}
                   onPointerOut={hoverOut}
                   highlighted={hoveredElement === "o:" + ov.name}
@@ -1545,18 +1844,14 @@ function SceneContent({
                 maxFlow={maxFlow}
                 pipeSize={p.size}
                 opacity={elevOpacity}
-                onClick={openPopup("pipe", p.name, p.properties, [
-                  p.elevPoints[0][0],
-                  p.elevPoints[0][1],
-                  p.elevPoints[0][2],
-                ])}
+                onClick={openPopup("pipe", p.name, p.properties)}
                 onPointerOver={() => hoverIn("p:" + p.name)}
                 onPointerOut={hoverOut}
                 highlighted={hoveredElement === "p:" + p.name}
               />
             ))}
 
-          {/* Vertical risers — pipes/valves up to reservoir bottom */}
+          {/* Reservoir risers */}
           {layerVis.reservoirs &&
             reservoirRisers.elev.map((ri) => (
               <AnimatedRiser
@@ -1587,11 +1882,7 @@ function SceneContent({
                   color="#333"
                   radius={0.15}
                   opacity={headOpacity}
-                  onClick={openPopup("node", n.name, n.properties, [
-                    n.x,
-                    n.y,
-                    scaleZ(n.head),
-                  ])}
+                  onClick={openPopup("node", n.name, n.properties)}
                   onPointerOver={() => hoverIn("n:" + n.name)}
                   onPointerOut={hoverOut}
                   highlighted={hoveredElement === "n:" + n.name}
@@ -1609,11 +1900,7 @@ function SceneContent({
                   color={valveColor(v)}
                   radius={0.2}
                   opacity={headOpacity}
-                  onClick={openPopup("valve", v.name, v.properties, [
-                    v.x,
-                    v.y,
-                    scaleZ(v.head),
-                  ])}
+                  onClick={openPopup("valve", v.name, v.properties)}
                   onPointerOver={() => hoverIn("v:" + v.name)}
                   onPointerOut={hoverOut}
                   highlighted={hoveredElement === "v:" + v.name}
@@ -1627,17 +1914,14 @@ function SceneContent({
               .map((res) => {
                 const z = scaleZ(res.head) + RESERVOIR_Z_BOOST;
                 return (
-                  <ReservoirBox
+                  <ReservoirPolygon
                     key={`head-r-${res.name}`}
-                    center={[res.cx, res.cy, z]}
-                    size={[res.w, res.h, RESERVOIR_THICKNESS]}
+                    ring={res.ring}
+                    zCenter={z}
+                    thickness={RESERVOIR_THICKNESS}
                     color={HEAD_COLOR}
                     opacity={headOpacity}
-                    onClick={openPopup("reservoir", res.name, res.properties, [
-                      res.cx,
-                      res.cy,
-                      z,
-                    ])}
+                    onClick={openPopup("reservoir", res.name, res.properties)}
                     onPointerOver={() => hoverIn("r:" + res.name)}
                     onPointerOut={hoverOut}
                     highlighted={hoveredElement === "r:" + res.name}
@@ -1650,6 +1934,7 @@ function SceneContent({
             overflowElements
               .filter((ov) => ov.head != null)
               .map((ov) => {
+                // For head overlay, use head as the top of the cylinder
                 const zBottom = scaleZ(ov.nodeElev);
                 const zTop = scaleZ(ov.head);
                 return (
@@ -1661,11 +1946,7 @@ function SceneContent({
                     zTop={zTop}
                     color={ov.isActive ? "#e74c3c" : HEAD_COLOR}
                     opacity={headOpacity}
-                    onClick={openPopup("overflow", ov.name, ov.properties, [
-                      ov.cx,
-                      ov.cy,
-                      (zBottom + zTop) / 2,
-                    ])}
+                    onClick={openPopup("overflow", ov.name, ov.properties)}
                     onPointerOver={() => hoverIn("o:" + ov.name)}
                     onPointerOut={hoverOut}
                     highlighted={hoveredElement === "o:" + ov.name}
@@ -1684,18 +1965,14 @@ function SceneContent({
                 maxFlow={maxFlow}
                 pipeSize={p.size}
                 opacity={headOpacity}
-                onClick={openPopup("pipe", p.name, p.properties, [
-                  p.headPoints[0][0],
-                  p.headPoints[0][1],
-                  p.headPoints[0][2],
-                ])}
+                onClick={openPopup("pipe", p.name, p.properties)}
                 onPointerOver={() => hoverIn("p:" + p.name)}
                 onPointerOut={hoverOut}
                 highlighted={hoveredElement === "p:" + p.name}
               />
             ))}
 
-          {/* Vertical risers — pipes/valves up to reservoir bottom */}
+          {/* Reservoir risers */}
           {layerVis.reservoirs &&
             reservoirRisers.head.map((ri) => (
               <AnimatedRiser
@@ -1715,7 +1992,7 @@ function SceneContent({
       <OrbitControls
         ref={controlsRef}
         makeDefault
-        target={[14, 5, 3]}
+        target={[0, 0, 5]}
         enableDamping
         dampingFactor={0.25}
         rotateSpeed={1.4}
@@ -1723,7 +2000,7 @@ function SceneContent({
         zoomSpeed={1.2}
         zoomToCursor
         minZoom={10}
-        maxZoom={150}
+        maxZoom={8000}
         minPolarAngle={0}
         maxPolarAngle={Math.PI}
         mouseButtons={{
@@ -1757,10 +2034,10 @@ function SceneContent({
   );
 }
 
-/* ═══════════════════════════════════════════════ */
-/*  MAIN EXPORTED COMPONENT                       */
-/* ═══════════════════════════════════════════════ */
-export default function SchematicPanel3D({
+/* ═══════════════════════════════════════════════════════════ */
+/*  MAIN EXPORTED COMPONENT                                   */
+/* ═══════════════════════════════════════════════════════════ */
+export default function GeoPanel3D({
   hydraulicResults,
   valveOverrides,
   onValveOverrideChange,
@@ -1849,13 +2126,13 @@ export default function SchematicPanel3D({
     <div className="three-d-container">
       <Canvas
         orthographic
-        camera={{ zoom: 38, near: -200, far: 400, position: [14, -18, 14] }}
+        camera={{ zoom: 35, near: -200, far: 400, position: [0, -20, 18] }}
         gl={{ antialias: true, alpha: false }}
         onCreated={({ gl }) => {
           gl.setClearColor("#f0f2f5");
         }}
       >
-        <SceneContent
+        <GeoSceneContent
           hydraulicResults={hydraulicResults}
           valveOverrides={valveOverrides}
           onValveOverrideChange={onValveOverrideChange}
@@ -1872,15 +2149,14 @@ export default function SchematicPanel3D({
         />
       </Canvas>
 
-      {/* CW / CCW rotate buttons — always visible below viewcube,
-          disabled when not in face-on mode */}
+      {/* CW / CCW rotate buttons */}
       <div className="face-rotate-controls">
         <button
           className="face-rotate-btn"
           title="Rotate view 90° counter-clockwise"
           disabled={!isFaceOn}
           onClick={() => {
-            _rotatePending = { angle: 90 };
+            _geoRotatePending = { angle: 90 };
           }}
         >
           ↶
@@ -1890,14 +2166,14 @@ export default function SchematicPanel3D({
           title="Rotate view 90° clockwise"
           disabled={!isFaceOn}
           onClick={() => {
-            _rotatePending = { angle: -90 };
+            _geoRotatePending = { angle: -90 };
           }}
         >
           ↷
         </button>
       </div>
 
-      {/* Overlay opacity controls — positioned left of the 2×2 switch */}
+      {/* Overlay opacity controls */}
       <div className="overlay-controls">
         <div className="overlay-section-label">Total Head</div>
         <div className="overlay-slider-row">

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import MapPanel from "./components/MapPanel.jsx";
 import SchematicPanel3D from "./components/SchematicPanel3D.jsx";
+import GeoPanel3D from "./components/GeoPanel3D.jsx";
 import ViewModeSwitch from "./components/ViewModeSwitch.jsx";
 import HelpModal from "./components/HelpModal.jsx";
 import { runHydraulicModel } from "./epanetModel.js";
@@ -19,7 +20,7 @@ const LAYER_DEFS = [
 ];
 
 function LayerControl({ visibility, onToggle, viewMode }) {
-  const isGeo = viewMode === "2d-geo";
+  const isGeo = viewMode === "2d-geo" || viewMode === "3d-geo";
   return (
     <div className="layer-control">
       {LAYER_DEFS.filter(({ geoOnly }) => !geoOnly || isGeo).map(
@@ -121,6 +122,16 @@ export default function App() {
         <div className="view-mode-switch-wrapper">
           <ViewModeSwitch activeMode={viewMode} onModeChange={setViewMode} />
         </div>
+        {results && viewMode === "3d-geo" && (
+          <GeoPanel3D
+            hydraulicResults={results}
+            valveOverrides={valveOverrides}
+            onValveOverrideChange={handleValveOverrideChange}
+            elevOverrides={elevOverrides}
+            onElevOverrideChange={handleElevOverrideChange}
+            layerVis={layerVis}
+          />
+        )}
         {results && viewMode === "3d-sch" && (
           <SchematicPanel3D
             hydraulicResults={results}
@@ -131,7 +142,7 @@ export default function App() {
             layerVis={layerVis}
           />
         )}
-        {results && viewMode !== "3d-sch" && (
+        {results && (viewMode === "2d-geo" || viewMode === "2d-sch") && (
           <MapPanel
             hydraulicResults={results}
             valveOverrides={valveOverrides}

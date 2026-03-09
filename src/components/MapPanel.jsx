@@ -116,7 +116,18 @@ function getOriginalStyle(feature, layer, resultsRef) {
       dashArray: hasFlow ? "10 10" : null,
     };
   }
-  // Polygon / MultiPolygon
+  // Polygon / MultiPolygon — check if this is an active overflow
+  const ovName = feature.properties?.name;
+  const isActiveOverflow =
+    ovName && resultsRef?.current?.overflow?.[ovName]?.active;
+  if (isActiveOverflow) {
+    return {
+      fillColor: "#e74c3c",
+      fillOpacity: 0.6,
+      color: "#c0392b",
+      weight: 2,
+    };
+  }
   return {
     color: "#232323",
     weight: 1,
@@ -319,12 +330,12 @@ function HighlightCleanup() {
       }
     };
 
-    map.on('mousemove', onMapMouseMove);
-    container.addEventListener('mouseleave', onContainerLeave);
+    map.on("mousemove", onMapMouseMove);
+    container.addEventListener("mouseleave", onContainerLeave);
 
     return () => {
-      map.off('mousemove', onMapMouseMove);
-      container.removeEventListener('mouseleave', onContainerLeave);
+      map.off("mousemove", onMapMouseMove);
+      container.removeEventListener("mouseleave", onContainerLeave);
     };
   }, [map]);
   return null;
@@ -396,6 +407,37 @@ export default function MapPanel({
       setPipeLayerReady(true);
     }
   }, []);
+
+  // Build a name→[x,y] coordinate lookup for every pipe endpoint
+  // (nodes, valves, reservoir/overflow centroids) so we can determine
+  // whether a pipe's GeoJSON coordinates run us_node→ds_node or vice-versa.
+  const nodeCoordMap = useMemo(() => {
+    const m = new Map();
+    // Point features: nodes and valves
+    for (const fc of [activeNodes, activeValves]) {
+      if (!fc?.features) continue;
+      for (const f of fc.features) {
+        const name = f.properties?.name;
+        const c = f.geometry?.coordinates;
+        if (name && c) m.set(name, c);
+      }
+    }
+    // Polygon features: reservoirs and overflow — use ring centroid
+    for (const fc of [activeReservoirs, activeOverflow]) {
+      if (!fc?.features) continue;
+      for (const f of fc.features) {
+        const name = f.properties?.name;
+        const c = f.geometry?.coordinates;
+        if (!name || !c) continue;
+        const ring = c?.[0]?.[0] || c?.[0];
+        if (!ring?.length) continue;
+        const cx = ring.reduce((s, p) => s + p[0], 0) / ring.length;
+        const cy = ring.reduce((s, p) => s + p[1], 0) / ring.length;
+        m.set(name, [cx, cy]);
+      }
+    }
+    return m;
+  }, [activeNodes, activeValves, activeReservoirs, activeOverflow]);
 
   // Stable extra-refs object for reservoir/overflow popups
   const elevExtraRefs = useMemo(
@@ -484,6 +526,11 @@ export default function MapPanel({
         const color = hasFlow ? "#1f78b4" : "#999";
 
         if (hasFlow) {
+          // Determine animation direction from EPANET hydraulic results.
+          // flow > 0 → water travels us_node → ds_node.
+          // We compare the first GeoJSON coordinate with the us_node
+          // location to find whether the line is drawn us→ds or ds→us,
+          // then set `sign` so the dash animation follows the flow.
           const coords = layer.feature.geometry?.coordinates;
           let first, last;
           if (coords) {
@@ -491,10 +538,39 @@ export default function MapPanel({
             first = ring[0];
             last = ring[ring.length - 1];
           }
-          let sign = -1;
-          if (first && last && first[0] < last[0]) {
-            sign = 1;
+
+          const usNode = props.us_node;
+          const dsNode = props.ds_node;
+          const usCoord = nodeCoordMap.get(usNode);
+          const dsCoord = nodeCoordMap.get(dsNode);
+
+          // Determine whether GeoJSON coords run us→ds or ds→us.
+          // Compare both endpoints to handle short pipes near large
+          // polygons (reservoir centroids far from pipe ends) and
+          // missing node coordinates.
+          let coordsGoUsToDs = true;
+          if (first && last && usCoord && dsCoord) {
+            const sumNormal =
+              Math.hypot(first[0] - usCoord[0], first[1] - usCoord[1]) +
+              Math.hypot(last[0] - dsCoord[0], last[1] - dsCoord[1]);
+            const sumFlipped =
+              Math.hypot(first[0] - dsCoord[0], first[1] - dsCoord[1]) +
+              Math.hypot(last[0] - usCoord[0], last[1] - usCoord[1]);
+            coordsGoUsToDs = sumNormal <= sumFlipped;
+          } else if (first && last && usCoord) {
+            coordsGoUsToDs =
+              Math.hypot(first[0] - usCoord[0], first[1] - usCoord[1]) <=
+              Math.hypot(last[0] - usCoord[0], last[1] - usCoord[1]);
+          } else if (first && last && dsCoord) {
+            coordsGoUsToDs =
+              Math.hypot(last[0] - dsCoord[0], last[1] - dsCoord[1]) <=
+              Math.hypot(first[0] - dsCoord[0], first[1] - dsCoord[1]);
           }
+
+          // sign = -1 → dashes move first→last (forward along path)
+          // sign =  1 → dashes move last→first (backward along path)
+          const flowGoesUsToDs = flow > 0;
+          let sign = flowGoesUsToDs === coordsGoUsToDs ? -1 : 1;
 
           const speed = 7.5 + (absFlow / maxFlow) * 52.5;
           // Start solid; dash pattern enabled after initial render settles
@@ -611,7 +687,7 @@ export default function MapPanel({
         map.off("zoomend", onZoomEnd);
       }
     };
-  }, [r, pipeLayerReady, viewMode]);
+  }, [r, pipeLayerReady, viewMode, nodeCoordMap]);
 
   // Combine all data for bounds calculation
   const allData = {

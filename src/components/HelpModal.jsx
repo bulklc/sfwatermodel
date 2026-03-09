@@ -67,17 +67,30 @@ export default function HelpModal({ open, onClose }) {
               <strong>2D SCH</strong> — Simplified schematic diagram on a grid.
             </li>
             <li>
-              <strong>3D SCH</strong> — Isometric view with two overlapping
-              overlays, each controlled by an opacity slider:
+              <strong>3D SCH</strong> — Isometric 3D view of the same schematic,
+              showing element elevations and total hydraulic heads along the
+              Z-axis as two seperate "overlays".
               <ul>
                 <li>
-                  <strong>Elevation</strong> — Elements positioned at their
-                  actual elevations.
+                  <strong>Elevation Overlay</strong> — Elements positioned at
+                  their actual elevations.
                 </li>
                 <li>
-                  <strong>Total Head</strong> — Elements positioned at their
-                  hydraulic total head (elevation + pressure head) as computed
-                  by the model.
+                  <strong>Total Head Overlay</strong> — Elements positioned at
+                  their hydraulic total head (elevation + pressure head) as
+                  computed by the model.
+                </li>
+                <li>Opacity slides control visibility of each overlay.</li>
+              </ul>
+            </li>
+            <li>
+              <strong>3D GEO</strong> — Isometric 3D view combining the
+              real-world coordinates from the 2D GEO view with the same Z-axis
+              overlays for elevation and total head.
+              <ul>
+                <li>
+                  Faint white vertical lines connect each element's position on
+                  the base map to the elevation and total head overlays.
                 </li>
               </ul>
             </li>
@@ -86,7 +99,8 @@ export default function HelpModal({ open, onClose }) {
           <ul>
             <li>
               <strong>Pipes</strong> — Blue animated lines = flowing; gray = no
-              flow.
+              flow. Animation direction follows hydraulic flow (high head → low
+              head).
             </li>
             <li>
               <strong>Valves</strong> — Blue = open, yellow = throttled, red =

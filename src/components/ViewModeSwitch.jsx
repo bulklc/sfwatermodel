@@ -3,7 +3,7 @@ import "./ViewModeSwitch.css";
 const MODES = [
   { id: "2d-geo", label: "2D", col: "GEO", row: "2D", enabled: true },
   { id: "2d-sch", label: "2D", col: "SCH", row: "2D", enabled: true },
-  { id: "3d-geo", label: "3D", col: "GEO", row: "3D", enabled: false },
+  { id: "3d-geo", label: "3D", col: "GEO", row: "3D", enabled: true },
   { id: "3d-sch", label: "3D", col: "SCH", row: "3D", enabled: true },
 ];
 

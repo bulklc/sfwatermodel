@@ -47,7 +47,7 @@
 .vms-cell {
     display: block;
     border: none;
-    background: #f1f5f9;
+    background: #cbd5e1;
     width: 24px;
     height: 24px;
     cursor: pointer;
@@ -57,7 +57,7 @@
 }
 
 .vms-cell:hover:not(.vms-disabled):not(.vms-active) {
-    background: #e2e8f0;
+    background: #94a3b8;
     color: #334155;
 }
 
