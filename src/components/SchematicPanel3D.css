@@ -83,17 +83,26 @@
 }
 
 /* ── 3D popup overlay ───────────────────────── */
-.three-d-popup-wrapper {
-    pointer-events: auto;
-    min-width: 310px;
+.three-d-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.25);
 }
 
-.three-d-popup-wrapper .popup-container {
+.three-d-popup-wrapper {
+    position: relative;
+    pointer-events: auto;
+    min-width: 310px;
     background: rgba(255, 255, 255, 0.97);
     backdrop-filter: blur(6px);
     border-radius: 10px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.06);
     padding: 10px;
+    overflow: hidden;
 }
 
 .three-d-popup-close {

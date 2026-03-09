@@ -48,7 +48,7 @@ export default function App() {
   const [results, setResults] = useState(null);
   const [modelError, setModelError] = useState(null);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [viewMode, setViewMode] = useState("3d-sch");
+  const [viewMode, setViewMode] = useState("2d-geo");
 
   /* Shared layer visibility — single state for all view modes */
   const [layerVis, setLayerVis] = useState({

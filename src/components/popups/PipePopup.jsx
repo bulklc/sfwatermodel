@@ -32,8 +32,9 @@ function DetailRow({
   decimals = 2,
   hoverKey = null,
   onHover = null,
+  valueColor = null,
 }) {
-  const valColor = computed ? C_TOTAL : "#222";
+  const valColor = valueColor || (computed ? C_TOTAL : "#222");
   const rowStyle =
     highlighted ?
       {
@@ -119,6 +120,9 @@ function PipeBarChart({ usElev, dsElev, usHead, dsHead, hovered, setHovered }) {
   const usPres = usHead - usElev;
   const dsPres = dsHead - dsElev;
 
+  const usPresNeg = usPres < 0;
+  const dsPresNeg = dsPres < 0;
+
   const W = 310;
   const H = 120;
   const padTop = 18;
@@ -130,7 +134,13 @@ function PipeBarChart({ usElev, dsElev, usHead, dsHead, hovered, setHovered }) {
   const chartH = H - padTop - padBot;
   const chartW = W - padLeft - padRight;
 
-  const maxVal = Math.max(usHead, dsHead, usElev + usPres, dsElev + dsPres, 1);
+  const maxVal = Math.max(
+    usHead,
+    dsHead,
+    usElev + Math.abs(usPres),
+    dsElev + Math.abs(dsPres),
+    1,
+  );
   const scale = (v) => (v / maxVal) * chartH;
   const baseY = padTop + chartH;
 
@@ -143,11 +153,11 @@ function PipeBarChart({ usElev, dsElev, usHead, dsHead, hovered, setHovered }) {
   const xUS_stack = xUS_total - barW - barGap;
 
   const hUsElev = scale(usElev);
-  const hUsPres = scale(usPres);
+  const hUsPres = scale(Math.abs(usPres));
   const hDsElev = scale(dsElev);
-  const hDsPres = scale(dsPres);
-  const hUsHead = scale(usHead);
-  const hDsHead = scale(dsHead);
+  const hDsPres = scale(Math.abs(dsPres));
+  const hUsHead = scale(Math.max(0, usHead));
+  const hDsHead = scale(Math.max(0, dsHead));
 
   const step = niceStep(maxVal);
   const axisRight = W - padRight;
@@ -219,9 +229,10 @@ function PipeBarChart({ usElev, dsElev, usHead, dsHead, hovered, setHovered }) {
         onMouseEnter={() => setHovered("ds_elev")}
         onMouseLeave={() => setHovered(null)}
       />
+      {/* DS pressure head (on top of elevation if positive, below if negative) */}
       <rect
         x={xDS_stack}
-        y={baseY - hDsElev - hDsPres}
+        y={dsPresNeg ? baseY - hDsElev : baseY - hDsElev - hDsPres}
         width={barW}
         height={hDsPres}
         fill={C_PRES_DS}
@@ -269,9 +280,10 @@ function PipeBarChart({ usElev, dsElev, usHead, dsHead, hovered, setHovered }) {
         onMouseEnter={() => setHovered("us_elev")}
         onMouseLeave={() => setHovered(null)}
       />
+      {/* US pressure head (on top of elevation if positive, below if negative) */}
       <rect
         x={xUS_stack}
-        y={baseY - hUsElev - hUsPres}
+        y={usPresNeg ? baseY - hUsElev : baseY - hUsElev - hUsPres}
         width={barW}
         height={hUsPres}
         fill={C_PRES}
@@ -592,16 +604,29 @@ export default function PipePopup({ properties, results }) {
                 <DetailRow label="Type" unit="" textValue={capitalize(type)} />
                 <DetailRow label="Size" unit="IN" value={size} />
                 <DetailRow label="Length" unit="FT" value={length} />
-                {/* Separator */}
+                {/* Divider */}
                 <tr>
-                  <td colSpan={4} style={{ height: 3 }} />
+                  <td colSpan={4} style={{ padding: "4px 0" }}>
+                    <div className="popup-divider" />
+                  </td>
                 </tr>
-                <DetailRow label="Flow" unit="MGD" value={r.flow} computed />
+                <DetailRow
+                  label="Flow"
+                  unit="MGD"
+                  value={r.flow}
+                  computed
+                  valueColor={
+                    r.flow != null && r.flow < 0 ? "#c0392b" : undefined
+                  }
+                />
                 <DetailRow
                   label="Velocity"
                   unit="FT/S"
                   value={r.velocity}
                   computed
+                  valueColor={
+                    r.velocity != null && r.velocity < 0 ? "#c0392b" : undefined
+                  }
                 />
                 <DetailRow
                   label="Headloss"
@@ -611,10 +636,15 @@ export default function PipePopup({ properties, results }) {
                   highlighted={hovered === "headloss"}
                   hoverKey="headloss"
                   onHover={setHovered}
+                  valueColor={
+                    r.headloss != null && r.headloss < 0 ? "#c0392b" : undefined
+                  }
                 />
-                {/* Separator */}
+                {/* Divider */}
                 <tr>
-                  <td colSpan={4} style={{ height: 3 }} />
+                  <td colSpan={4} style={{ padding: "4px 0" }}>
+                    <div className="popup-divider" />
+                  </td>
                 </tr>
                 <DetailRow
                   label="US Elevation"
@@ -631,6 +661,9 @@ export default function PipePopup({ properties, results }) {
                   unit="PSI"
                   value={usPres != null ? usPres * 0.43353 : null}
                   computed
+                  valueColor={
+                    usPres != null && usPres < 0 ? "#c0392b" : undefined
+                  }
                 />
                 <DetailRow
                   label="US Pressure Head"
@@ -641,6 +674,9 @@ export default function PipePopup({ properties, results }) {
                   highlighted={hovered === "us_pres"}
                   hoverKey="us_pres"
                   onHover={setHovered}
+                  valueColor={
+                    usPres != null && usPres < 0 ? "#c0392b" : undefined
+                  }
                 />
                 <DetailRow
                   label="US Total Head"
@@ -651,10 +687,15 @@ export default function PipePopup({ properties, results }) {
                   highlighted={hovered === "us_total"}
                   hoverKey="us_total"
                   onHover={setHovered}
+                  valueColor={
+                    usHead != null && usHead < 0 ? "#c0392b" : undefined
+                  }
                 />
-                {/* Separator */}
+                {/* Divider */}
                 <tr>
-                  <td colSpan={4} style={{ height: 3 }} />
+                  <td colSpan={4} style={{ padding: "4px 0" }}>
+                    <div className="popup-divider" />
+                  </td>
                 </tr>
                 <DetailRow
                   label="DS Elevation"
@@ -671,6 +712,9 @@ export default function PipePopup({ properties, results }) {
                   unit="PSI"
                   value={dsPres != null ? dsPres * 0.43353 : null}
                   computed
+                  valueColor={
+                    dsPres != null && dsPres < 0 ? "#c0392b" : undefined
+                  }
                 />
                 <DetailRow
                   label="DS Pressure Head"
@@ -681,6 +725,9 @@ export default function PipePopup({ properties, results }) {
                   highlighted={hovered === "ds_pres"}
                   hoverKey="ds_pres"
                   onHover={setHovered}
+                  valueColor={
+                    dsPres != null && dsPres < 0 ? "#c0392b" : undefined
+                  }
                 />
                 <DetailRow
                   label="DS Total Head"
@@ -691,10 +738,15 @@ export default function PipePopup({ properties, results }) {
                   highlighted={hovered === "ds_total"}
                   hoverKey="ds_total"
                   onHover={setHovered}
+                  valueColor={
+                    dsHead != null && dsHead < 0 ? "#c0392b" : undefined
+                  }
                 />
               </tbody>
             </table>
           </div>
+
+          <div className="popup-divider" style={{ margin: "4px 0 2px" }} />
 
           <PipeBarChart
             usElev={usElev ?? 0}

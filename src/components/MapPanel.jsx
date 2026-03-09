@@ -184,7 +184,7 @@ function makeOnEachFeature(PopupComponent, resultsRef, extraRefsOrNull) {
       const popup = L.popup({
         className: "styled-popup",
         maxWidth: 350,
-        closeOnClick: false,
+        closeOnClick: true,
         autoPan: true,
         autoPanPadding: L.point(50, 50),
       });
@@ -216,12 +216,56 @@ function makeOnEachFeature(PopupComponent, resultsRef, extraRefsOrNull) {
       layer._renderPopup = renderPopup;
       layer._popupOpen = false;
 
-      layer.on("popupopen", () => {
+      layer.on("popupopen", (e) => {
         layer._popupOpen = true;
         renderPopup();
+
+        /* ── Smart popup positioning ──────────────────────────
+           If the clicked element is in the upper half of the map
+           container, flip the popup to open downward so it doesn't
+           fall off the top. The map will still autoPan if needed. */
+        const map = e.target._map || e.target._mapToAdd;
+        if (!map) return;
+        const latlng = popup.getLatLng();
+        if (!latlng) return;
+        const pt = map.latLngToContainerPoint(latlng);
+        const containerH = map.getSize().y;
+        const inUpperHalf = pt.y < containerH / 2;
+
+        if (inUpperHalf) {
+          // Flip popup to open downward via CSS + offset
+          const wrapper = popup.getElement();
+          if (wrapper) {
+            wrapper.classList.add("leaflet-popup--below");
+            // Leaflet internally positions the popup at:
+            //   layerPt + [0, -container.offsetHeight] + offset
+            // To flip it below the anchor, offset Y = container height.
+            const totalH = wrapper.offsetHeight || 0;
+            popup.options.offset = L.point(0, totalH);
+            popup.update();
+            // Re-trigger autoPan after repositioning
+            if (popup.options.autoPan) {
+              popup._adjustPan();
+            }
+          }
+        } else {
+          // Normal upward popup — ensure defaults
+          const wrapper = popup.getElement();
+          if (wrapper) {
+            wrapper.classList.remove("leaflet-popup--below");
+          }
+          popup.options.offset = L.point(0, 7);
+          popup.update();
+        }
       });
       layer.on("popupclose", () => {
         layer._popupOpen = false;
+        // Reset popup offset to default
+        popup.options.offset = L.point(0, 7);
+        const wrapper = popup.getElement();
+        if (wrapper) {
+          wrapper.classList.remove("leaflet-popup--below");
+        }
         if (root) {
           root.unmount();
           root = null;
@@ -245,6 +289,44 @@ function FitBounds({ data }) {
       fitted.current = true;
     }
   }, [map, data]);
+  return null;
+}
+
+/* ---- map-level safety net for highlight cleanup ---- */
+// When bringToFront() reorders SVG elements during mouseover, the browser
+// may miss the corresponding mouseout event, leaving a layer highlighted.
+// This component checks on every mousemove whether the highlighted layer's
+// DOM element is still under the cursor and clears the highlight if not.
+function HighlightCleanup() {
+  const map = useMap();
+  useEffect(() => {
+    const container = map.getContainer();
+
+    const onMapMouseMove = (e) => {
+      if (!_highlightedLayer) return;
+      const highlightEl = _highlightedLayer.getElement?.();
+      if (!highlightEl) return;
+      const target = e.originalEvent?.target;
+      if (target && target !== highlightEl) {
+        _clearHighlight();
+      }
+    };
+
+    // Mouse left the map container entirely – clear any lingering highlight
+    const onContainerLeave = () => {
+      if (_highlightedLayer) {
+        _clearHighlight();
+      }
+    };
+
+    map.on('mousemove', onMapMouseMove);
+    container.addEventListener('mouseleave', onContainerLeave);
+
+    return () => {
+      map.off('mousemove', onMapMouseMove);
+      container.removeEventListener('mouseleave', onContainerLeave);
+    };
+  }, [map]);
   return null;
 }
 
@@ -570,6 +652,7 @@ export default function MapPanel({
 
       <FitBounds data={allData} />
       <CreatePanes />
+      <HighlightCleanup />
 
       {/* Polygons (bottom layer) – stable keys so layers never remount */}
       {layerVis.reservoirs && (
@@ -702,12 +785,38 @@ export default function MapPanel({
                   requestAnimationFrame(() => {
                     if (popup) popup._updateLayout = () => {};
                   });
+
+                  /* ── Smart popup positioning (same logic as GeoJSON layers) ── */
+                  const map = e.target._map;
+                  if (map && popup.getLatLng()) {
+                    const pt = map.latLngToContainerPoint(popup.getLatLng());
+                    const containerH = map.getSize().y;
+                    const inUpperHalf = pt.y < containerH / 2;
+                    const wrapper = popup.getElement();
+                    if (inUpperHalf && wrapper) {
+                      wrapper.classList.add("leaflet-popup--below");
+                      const totalH = wrapper.offsetHeight || 0;
+                      popup.options.offset = L.point(0, totalH);
+                      popup.update();
+                      if (popup.options.autoPan) popup._adjustPan();
+                    } else if (wrapper) {
+                      wrapper.classList.remove("leaflet-popup--below");
+                      popup.options.offset = L.point(0, 7);
+                      popup.update();
+                    }
+                  }
                 },
                 popupclose: (e) => {
                   // Restore _updateLayout so the next open re-positions correctly
                   const popup = e.popup;
                   if (popup && popup._origUpdateLayout) {
                     popup._updateLayout = popup._origUpdateLayout;
+                  }
+                  // Reset popup offset and flip class
+                  popup.options.offset = L.point(0, 7);
+                  const wrapper = popup.getElement();
+                  if (wrapper) {
+                    wrapper.classList.remove("leaflet-popup--below");
                   }
                   e.target.setStyle(defaultStyle);
                   if (_highlightedLayer === e.target) {

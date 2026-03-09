@@ -37,7 +37,9 @@ function HeadChart({
   const chartH = H - padTop - padBot;
   const chartW = W - padLeft - padRight;
 
-  const maxVal = Math.max(totalHead, elevation + pressureHead, 1);
+  const presNeg = pressureHead < 0;
+  const absPres = Math.abs(pressureHead);
+  const maxVal = Math.max(totalHead, elevation + absPres, elevation, 1);
   const scale = (v) => (v / maxVal) * chartH;
 
   const totalBarW = barW * 2 + gap;
@@ -46,9 +48,9 @@ function HeadChart({
   const x2 = startX + barW + gap;
   const baseY = padTop + chartH;
 
-  const hTotal = scale(totalHead);
+  const hTotal = scale(Math.max(0, totalHead));
   const hElev = scale(elevation);
-  const hPres = scale(pressureHead);
+  const hPres = scale(absPres);
 
   // Nice y-axis ticks
   const niceStep = (range) => {
@@ -127,10 +129,10 @@ function HeadChart({
         onMouseLeave={() => setHovered(null)}
       />
 
-      {/* Bar 1: Pressure Head (top of stack) */}
+      {/* Bar 1: Pressure Head (top of stack, or below elev if negative) */}
       <rect
         x={x1}
-        y={baseY - hElev - hPres}
+        y={presNeg ? baseY - hElev : baseY - hElev - hPres}
         width={barW}
         height={hPres}
         fill={C_PRES}
@@ -168,8 +170,9 @@ function DetailRow({
   computed = false,
   swatch = null,
   highlighted = false,
+  valueColor = null,
 }) {
-  const valColor = computed ? C_TOTAL : "#222";
+  const valColor = valueColor || (computed ? C_TOTAL : "#222");
   const rowStyle =
     highlighted ?
       { background: "#f0f6ff", transition: "background 0.15s" }
@@ -254,6 +257,9 @@ export default function NodePopup({ properties, results }) {
                 value={flowMGD}
                 computed
                 swatch={null}
+                valueColor={
+                  flowMGD != null && flowMGD < 0 ? "#c0392b" : undefined
+                }
               />
               <DetailRow
                 label="Elevation"
@@ -269,6 +275,9 @@ export default function NodePopup({ properties, results }) {
                 value={r.pressure}
                 computed
                 swatch={null}
+                valueColor={
+                  r.pressure != null && r.pressure < 0 ? "#c0392b" : undefined
+                }
               />
               <DetailRow
                 label="Pressure Head"
@@ -277,6 +286,11 @@ export default function NodePopup({ properties, results }) {
                 computed
                 swatch={C_PRES}
                 highlighted={hovered === "pres"}
+                valueColor={
+                  pressureHeadFt != null && pressureHeadFt < 0 ?
+                    "#c0392b"
+                  : undefined
+                }
               />
               <DetailRow
                 label="Total Head"
@@ -285,6 +299,9 @@ export default function NodePopup({ properties, results }) {
                 computed
                 swatch={C_TOTAL}
                 highlighted={hovered === "total"}
+                valueColor={
+                  r.head != null && r.head < 0 ? "#c0392b" : undefined
+                }
               />
             </tbody>
           </table>

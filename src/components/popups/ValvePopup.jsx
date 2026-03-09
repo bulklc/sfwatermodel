@@ -514,7 +514,7 @@ export default function ValvePopup({
 
   /* ── Three-way switch position index ─────────────────────────── */
   const triModes = ["open", "throttled", "closed"];
-  const triLabels = ["Full Open", "Throttled", "Closed"];
+  const triLabels = ["Fully Open", "Throttled", "Fully Closed"];
   const triIndex = triModes.indexOf(butterflyMode ?? "open");
   const triColors = {
     open: "#1f78b4",
@@ -732,6 +732,8 @@ export default function ValvePopup({
         </div>
       )}
 
+      <div className="popup-divider" style={{ margin: "4px 0 2px" }} />
+
       {/* ── Unified detail table ── */}
       <div style={{ paddingRight: 14 }}>
         <table
@@ -759,18 +761,31 @@ export default function ValvePopup({
               hoverKey="elev"
               onHover={setHovered}
             />
-            {/* Separator */}
+            {/* Divider */}
             <tr>
-              <td colSpan={4} style={{ height: 3 }} />
+              <td colSpan={4} style={{ padding: "4px 0" }}>
+                <div className="popup-divider" />
+              </td>
             </tr>
             {r && (
               <>
-                <DetailRow label="Flow" unit="MGD" value={r.flow} computed />
+                <DetailRow
+                  label="Flow"
+                  unit="MGD"
+                  value={r.flow}
+                  computed
+                  valueColor={
+                    r.flow != null && r.flow < 0 ? "#c0392b" : undefined
+                  }
+                />
                 <DetailRow
                   label="Velocity"
                   unit="FT/S"
                   value={r.velocity}
                   computed
+                  valueColor={
+                    r.velocity != null && r.velocity < 0 ? "#c0392b" : undefined
+                  }
                 />
                 <DetailRow
                   label="Headloss"
@@ -781,10 +796,15 @@ export default function ValvePopup({
                   highlighted={hovered === "headloss"}
                   hoverKey="headloss"
                   onHover={setHovered}
+                  valueColor={
+                    r.headloss != null && r.headloss < 0 ? "#c0392b" : undefined
+                  }
                 />
-                {/* Separator */}
+                {/* Divider */}
                 <tr>
-                  <td colSpan={4} style={{ height: 3 }} />
+                  <td colSpan={4} style={{ padding: "4px 0" }}>
+                    <div className="popup-divider" />
+                  </td>
                 </tr>
                 <DetailRow
                   label="US Pressure"
@@ -817,10 +837,15 @@ export default function ValvePopup({
                   highlighted={hovered === "us_total"}
                   hoverKey="us_total"
                   onHover={setHovered}
+                  valueColor={
+                    usHead != null && usHead < 0 ? "#c0392b" : undefined
+                  }
                 />
-                {/* Separator */}
+                {/* Divider */}
                 <tr>
-                  <td colSpan={4} style={{ height: 3 }} />
+                  <td colSpan={4} style={{ padding: "4px 0" }}>
+                    <div className="popup-divider" />
+                  </td>
                 </tr>
                 <DetailRow
                   label="DS Pressure"
@@ -853,6 +878,9 @@ export default function ValvePopup({
                   highlighted={hovered === "ds_total"}
                   hoverKey="ds_total"
                   onHover={setHovered}
+                  valueColor={
+                    dsHead != null && dsHead < 0 ? "#c0392b" : undefined
+                  }
                 />
               </>
             )}
@@ -861,6 +889,7 @@ export default function ValvePopup({
       </div>
 
       {/* ── Bar chart ── */}
+      {r && <div className="popup-divider" style={{ margin: "4px 0 2px" }} />}
       {r && (
         <ValveBarChart
           usElev={usElev ?? 0}

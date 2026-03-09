@@ -15,6 +15,14 @@
     margin: 10px;
 }
 
+/* ── Flipped popup (opens downward) ─────────────── */
+/* The tip container is flipped so the triangle points upward */
+.leaflet-popup--below .leaflet-popup-tip-container {
+    top: 0;
+    margin-top: -20px;
+    transform: rotate(180deg);
+}
+
 .popup-header {
     font-size: 15px;
     font-weight: 700;
@@ -36,6 +44,11 @@
 
 .popup-row:last-child {
     border-bottom: none;
+}
+
+.popup-divider {
+    width: 100%;
+    border-top: 1px solid #ddd;
 }
 
 .popup-label {
@@ -86,7 +99,6 @@
 
 .valve-control-group {
     padding: 6px 0;
-    border-bottom: 1px solid #f0f0f0;
 }
 
 .valve-control-group:last-child {
@@ -98,6 +110,7 @@
     color: #555;
     font-size: 12px;
     margin-bottom: 4px;
+    text-align: center;
 }
 
 .valve-toggle {

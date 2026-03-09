@@ -415,9 +415,352 @@ function CustomViewcube(props) {
   );
 }
 
-function FaceOnDetector({ controlsRef, onFaceOnChange }) {
+/* ───────── Z-axis overlay (gridlines + labels) ───────── */
+const Z_AXIS_MAX_ELEV = 2400; // gridlines/labels extend beyond data range
+const Z_AXIS_TICKS = [];
+{
+  const minor = 50; // ft per minor division
+  const major = 100; // ft per major division
+  for (
+    let elev = Math.ceil(ELEV_MIN / minor) * minor;
+    elev <= Z_AXIS_MAX_ELEV;
+    elev += minor
+  ) {
+    Z_AXIS_TICKS.push({ elev, z: scaleZ(elev), major: elev % major === 0 });
+  }
+}
+
+function ZAxisOverlay({ visible, controlsRef }) {
+  const groupRef = useRef();
+  const majorGeoRef = useRef();
+  const minorGeoRef = useRef();
+  const leftGroupRef = useRef();
+  const rightGroupRef = useRef();
+  const leftLabelRefs = useRef([]);
+  const rightLabelRefs = useRef([]);
+  const highlightGeoRef = useRef();
+  const highlightMatRef = useRef();
+  const currentOpacity = useRef(0);
+  const hoveredIdxRef = useRef(-1);
+  const [, forceUpdate] = useState(0);
+  const { camera, invalidate } = useThree();
+  const _dir = useMemo(() => new THREE.Vector3(), []);
+  const _right = useMemo(() => new THREE.Vector3(), []);
+  // Track last computed endpoint coords for the highlight line
+  const lastEndpoints = useRef({ lx: 0, ly: 0, rx: 0, ry: 0 });
+
+  const majorTicks = useMemo(() => Z_AXIS_TICKS.filter((t) => t.major), []);
+  const minorTicks = useMemo(() => Z_AXIS_TICKS.filter((t) => !t.major), []);
+
+  // Pre-allocate dynamic buffers (2 vertices × 3 floats per line)
+  const majorPositions = useMemo(
+    () => new Float32Array(majorTicks.length * 6),
+    [majorTicks],
+  );
+  const minorPositions = useMemo(
+    () => new Float32Array(minorTicks.length * 6),
+    [minorTicks],
+  );
+  const highlightPositions = useMemo(() => new Float32Array(6), []); // single line
+
+  const HALF_SPAN = 18; // world units — gridline half-width from center
+  const LABEL_GAP = 3.0; // world units beyond gridline end to label anchor
+
+  const setHovered = useCallback(
+    (idx) => {
+      if (hoveredIdxRef.current === idx) return;
+      hoveredIdxRef.current = idx;
+      // Update label styles immediately
+      for (let i = 0; i < leftLabelRefs.current.length; i++) {
+        const lEl = leftLabelRefs.current[i];
+        const rEl = rightLabelRefs.current[i];
+        const active = i === idx;
+        if (lEl) {
+          lEl.style.color = active ? "#0d47a1" : "#1f78b4";
+          lEl.style.textShadow =
+            active ? "0 0 6px rgba(13,71,161,0.4)" : "none";
+          lEl.style.fontSize = active ? "15px" : "13px";
+        }
+        if (rEl) {
+          rEl.style.color = active ? "#0d47a1" : "#1f78b4";
+          rEl.style.textShadow =
+            active ? "0 0 6px rgba(13,71,161,0.4)" : "none";
+          rEl.style.fontSize = active ? "15px" : "13px";
+        }
+      }
+      // Update highlight line
+      if (highlightGeoRef.current && highlightMatRef.current) {
+        if (idx >= 0 && idx < majorTicks.length) {
+          const z = majorTicks[idx].z;
+          const { lx, ly, rx, ry } = lastEndpoints.current;
+          const arr = highlightGeoRef.current.attributes.position.array;
+          arr[0] = lx;
+          arr[1] = ly;
+          arr[2] = z;
+          arr[3] = rx;
+          arr[4] = ry;
+          arr[5] = z;
+          highlightGeoRef.current.attributes.position.needsUpdate = true;
+          highlightMatRef.current.visible = true;
+        } else {
+          highlightMatRef.current.visible = false;
+        }
+      }
+      invalidate();
+    },
+    [majorTicks, invalidate],
+  );
+
+  useFrame((_, rawDt) => {
+    const dt = Math.min(rawDt, 0.05);
+    const targetOp = visible ? 1 : 0;
+    const speed = 6;
+    const alpha = 1 - Math.exp(-speed * dt);
+    currentOpacity.current += (targetOp - currentOpacity.current) * alpha;
+    if (Math.abs(currentOpacity.current - targetOp) < 0.005)
+      currentOpacity.current = targetOp;
+    const op = currentOpacity.current;
+    if (!groupRef.current) return;
+    groupRef.current.visible = op > 0.005;
+
+    // Material opacity
+    groupRef.current.traverse((child) => {
+      if (child.material) {
+        child.material.opacity = op * (child.userData.baseOpacity ?? 1);
+        child.material.needsUpdate = true;
+      }
+    });
+
+    // Label opacity
+    for (const el of leftLabelRefs.current) {
+      if (el) {
+        el.style.opacity = op;
+        el.style.visibility = op > 0.005 ? "visible" : "hidden";
+      }
+    }
+    for (const el of rightLabelRefs.current) {
+      if (el) {
+        el.style.opacity = op;
+        el.style.visibility = op > 0.005 ? "visible" : "hidden";
+      }
+    }
+
+    // Highlight line opacity
+    if (highlightMatRef.current && hoveredIdxRef.current >= 0) {
+      highlightMatRef.current.opacity = op * 0.7;
+    }
+
+    // Compute camera's screen-right direction projected onto horizontal plane
+    camera.getWorldDirection(_dir);
+    _dir.z = 0;
+    if (_dir.lengthSq() < 0.001) return; // looking straight up/down
+    _dir.normalize();
+    // right = viewDir × Z-up  →  (-dy, dx, 0)
+    _right.set(-_dir.y, _dir.x, 0);
+
+    const orbitTarget = controlsRef?.current?.target;
+    const cx = orbitTarget?.x ?? 14;
+    const cy = orbitTarget?.y ?? 5;
+
+    // Left / right endpoints
+    const lx = cx - _right.x * HALF_SPAN;
+    const ly = cy - _right.y * HALF_SPAN;
+    const rx = cx + _right.x * HALF_SPAN;
+    const ry = cy + _right.y * HALF_SPAN;
+    lastEndpoints.current = { lx, ly, rx, ry };
+
+    // Update major gridline positions
+    if (majorGeoRef.current) {
+      const arr = majorGeoRef.current.attributes.position.array;
+      for (let i = 0; i < majorTicks.length; i++) {
+        const z = majorTicks[i].z;
+        const j = i * 6;
+        arr[j] = lx;
+        arr[j + 1] = ly;
+        arr[j + 2] = z;
+        arr[j + 3] = rx;
+        arr[j + 4] = ry;
+        arr[j + 5] = z;
+      }
+      majorGeoRef.current.attributes.position.needsUpdate = true;
+    }
+
+    // Update minor gridline positions
+    if (minorGeoRef.current) {
+      const arr = minorGeoRef.current.attributes.position.array;
+      for (let i = 0; i < minorTicks.length; i++) {
+        const z = minorTicks[i].z;
+        const j = i * 6;
+        arr[j] = lx;
+        arr[j + 1] = ly;
+        arr[j + 2] = z;
+        arr[j + 3] = rx;
+        arr[j + 4] = ry;
+        arr[j + 5] = z;
+      }
+      minorGeoRef.current.attributes.position.needsUpdate = true;
+    }
+
+    // Update highlight line if hovered
+    if (
+      highlightGeoRef.current &&
+      hoveredIdxRef.current >= 0 &&
+      hoveredIdxRef.current < majorTicks.length
+    ) {
+      const z = majorTicks[hoveredIdxRef.current].z;
+      const arr = highlightGeoRef.current.attributes.position.array;
+      arr[0] = lx;
+      arr[1] = ly;
+      arr[2] = z;
+      arr[3] = rx;
+      arr[4] = ry;
+      arr[5] = z;
+      highlightGeoRef.current.attributes.position.needsUpdate = true;
+    }
+
+    // Update label group positions (left labels at left end, right labels at right end)
+    const lgx = cx - _right.x * (HALF_SPAN + LABEL_GAP);
+    const lgy = cy - _right.y * (HALF_SPAN + LABEL_GAP);
+    const rgx = cx + _right.x * (HALF_SPAN + LABEL_GAP);
+    const rgy = cy + _right.y * (HALF_SPAN + LABEL_GAP);
+    if (leftGroupRef.current) leftGroupRef.current.position.set(lgx, lgy, 0);
+    if (rightGroupRef.current) rightGroupRef.current.position.set(rgx, rgy, 0);
+  });
+
+  const labelStyle = {
+    fontSize: 13,
+    lineHeight: "13px",
+    color: "#1f78b4",
+    fontFamily: "system-ui, sans-serif",
+    fontWeight: 700,
+    whiteSpace: "nowrap",
+    pointerEvents: "auto",
+    userSelect: "none",
+    opacity: 0,
+    visibility: "hidden",
+    cursor: "default",
+    transition: "color 0.15s, font-size 0.15s, text-shadow 0.15s",
+    padding: "4px 2px",
+  };
+
+  return (
+    <group ref={groupRef} visible={false} renderOrder={-1}>
+      {/* Major gridlines */}
+      <lineSegments>
+        <bufferGeometry ref={majorGeoRef}>
+          <bufferAttribute
+            attach="attributes-position"
+            array={majorPositions}
+            count={majorTicks.length * 2}
+            itemSize={3}
+            usage={THREE.DynamicDrawUsage}
+          />
+        </bufferGeometry>
+        <lineBasicMaterial
+          color="#94a3b8"
+          transparent
+          depthWrite={false}
+          userData={{ baseOpacity: 0.4 }}
+        />
+      </lineSegments>
+
+      {/* Minor gridlines */}
+      <lineSegments>
+        <bufferGeometry ref={minorGeoRef}>
+          <bufferAttribute
+            attach="attributes-position"
+            array={minorPositions}
+            count={minorTicks.length * 2}
+            itemSize={3}
+            usage={THREE.DynamicDrawUsage}
+          />
+        </bufferGeometry>
+        <lineBasicMaterial
+          color="#cbd5e1"
+          transparent
+          depthWrite={false}
+          userData={{ baseOpacity: 0.2 }}
+        />
+      </lineSegments>
+
+      {/* Highlight gridline (shown on hover) */}
+      <line>
+        <bufferGeometry ref={highlightGeoRef}>
+          <bufferAttribute
+            attach="attributes-position"
+            array={highlightPositions}
+            count={2}
+            itemSize={3}
+            usage={THREE.DynamicDrawUsage}
+          />
+        </bufferGeometry>
+        <lineBasicMaterial
+          ref={highlightMatRef}
+          color="#0d47a1"
+          transparent
+          depthWrite={false}
+          visible={false}
+          userData={{ baseOpacity: 0.7 }}
+        />
+      </line>
+
+      {/* Left labels (right-aligned, just beyond left end of gridlines) */}
+      <group ref={leftGroupRef}>
+        {majorTicks.map(({ elev, z }, idx) => (
+          <Html key={`l-${elev}`} position={[0, 0, z]} zIndexRange={[0, 0]}>
+            <span
+              ref={(el) => {
+                leftLabelRefs.current[idx] = el;
+              }}
+              style={{
+                ...labelStyle,
+                position: "absolute",
+                right: 0,
+                top: "50%",
+                transform: "translateY(-50%)",
+                paddingRight: 4,
+              }}
+              onMouseEnter={() => setHovered(idx)}
+              onMouseLeave={() => setHovered(-1)}
+            >
+              {`${elev.toLocaleString()} FT`}
+            </span>
+          </Html>
+        ))}
+      </group>
+
+      {/* Right labels (left-aligned, just beyond right end of gridlines) */}
+      <group ref={rightGroupRef}>
+        {majorTicks.map(({ elev, z }, idx) => (
+          <Html key={`r-${elev}`} position={[0, 0, z]} zIndexRange={[0, 0]}>
+            <span
+              ref={(el) => {
+                rightLabelRefs.current[idx] = el;
+              }}
+              style={{
+                ...labelStyle,
+                position: "absolute",
+                left: 0,
+                top: "50%",
+                transform: "translateY(-50%)",
+                paddingLeft: 4,
+              }}
+              onMouseEnter={() => setHovered(idx)}
+              onMouseLeave={() => setHovered(-1)}
+            >
+              {`${elev.toLocaleString()} FT`}
+            </span>
+          </Html>
+        ))}
+      </group>
+    </group>
+  );
+}
+
+function FaceOnDetector({ controlsRef, onFaceOnChange, onSideFaceOnChange }) {
   const { camera, invalidate } = useThree();
   const wasFaceOn = useRef(false);
+  const wasSideFaceOn = useRef(false);
 
   useFrame((_, delta) => {
     if (!controlsRef.current) return;
@@ -562,6 +905,14 @@ function FaceOnDetector({ controlsRef, onFaceOnChange }) {
       wasFaceOn.current = isFaceOn;
       onFaceOnChange(isFaceOn);
     }
+
+    // Side face-on = looking horizontally (Z component near zero)
+    // Covers 4 face-on views (Front/Back/Left/Right) AND 4 edge views
+    const isSideFaceOn = az < FACE_THRESHOLD;
+    if (isSideFaceOn !== wasSideFaceOn.current) {
+      wasSideFaceOn.current = isSideFaceOn;
+      onSideFaceOnChange(isSideFaceOn);
+    }
   });
 
   return null;
@@ -580,8 +931,11 @@ function SceneContent({
   headOpacity,
   layerVis,
   onFaceOnChange,
+  onSideFaceOnChange,
+  isSideFaceOn,
+  popup,
+  setPopup,
 }) {
-  const [popup, setPopup] = useState(null);
   const [hoveredElement, setHoveredElement] = useState(null);
   const { camera, size, gl } = useThree();
   const hoverIn = useCallback(
@@ -595,79 +949,7 @@ function SceneContent({
     setHoveredElement(null);
     gl.domElement.style.cursor = "auto";
   }, [gl]);
-  const popupRef = useRef(null);
-
-  // Close popup on ESC key
-  useEffect(() => {
-    if (!popup) return;
-    const handler = (e) => {
-      if (e.key === "Escape") setPopup(null);
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [popup]);
-
-  // Close popup on mousedown outside the popup DOM element
-  useEffect(() => {
-    if (!popup) return;
-    const handler = (e) => {
-      if (popupRef.current && !popupRef.current.contains(e.target)) {
-        setPopup(null);
-      }
-    };
-    // Use a short delay so the opening click doesn't immediately close it
-    const timer = setTimeout(() => {
-      window.addEventListener("mousedown", handler);
-    }, 50);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener("mousedown", handler);
-    };
-  }, [popup]);
-
-  // After popup renders, check if it overflows the viewport.
-  // If so, pan the orbit controls target so the popup is fully visible.
   const controlsRef = useRef(null);
-  useEffect(() => {
-    if (!popup || !popupRef.current) return;
-    // Wait for the DOM to lay out
-    const timer = requestAnimationFrame(() => {
-      const el = popupRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      const pad = 10;
-      let panX = 0,
-        panY = 0;
-      if (rect.top < pad) panY = rect.top - pad; // negative → need to pan scene down (screen up)
-      if (rect.bottom > vh - pad) panY = rect.bottom - (vh - pad); // positive → pan scene up
-      if (rect.left < pad) panX = rect.left - pad;
-      if (rect.right > vw - pad) panX = rect.right - (vw - pad);
-
-      if ((panX !== 0 || panY !== 0) && controlsRef.current) {
-        // Convert pixel pan to world units using the camera
-        const cam = camera;
-        const dist = cam.position.distanceTo(controlsRef.current.target);
-        const fovRad = THREE.MathUtils.degToRad(cam.fov || 50);
-        const worldPerPx = (2 * dist * Math.tan(fovRad / 2)) / size.height;
-
-        // Camera's right and up vectors in world space
-        const right = new THREE.Vector3();
-        const up = new THREE.Vector3();
-        cam.matrixWorld.extractBasis(right, up, new THREE.Vector3());
-
-        const shift = new THREE.Vector3()
-          .addScaledVector(right, panX * worldPerPx)
-          .addScaledVector(up, -panY * worldPerPx); // screen Y is flipped
-
-        controlsRef.current.target.add(shift);
-        cam.position.add(shift);
-        controlsRef.current.update();
-      }
-    });
-    return () => cancelAnimationFrame(timer);
-  }, [popup, camera, size]);
 
   // Max flow for animation speed scaling
   const maxFlow = useMemo(() => {
@@ -778,10 +1060,16 @@ function SceneContent({
         cy: (eMinY + eMaxY) / 2,
         w: eMaxX - eMinX + 0.6, // pad so box visually encloses nodes
         h: eMaxY - eMinY + 0.6,
-        eMinX: eMinX - 0.3, // padded bounds for riser detection
+        eMinX: eMinX - 0.3, // padded expanded bounds (unused for risers)
         eMaxX: eMaxX + 0.3,
         eMinY: eMinY - 0.3,
         eMaxY: eMaxY + 0.3,
+        // Original polygon bounds — used for riser detection so only
+        // pipe endpoints at the actual reservoir edge get risers.
+        oMinX: minX - 0.3,
+        oMaxX: maxX + 0.3,
+        oMinY: minY - 0.3,
+        oMaxY: maxY + 0.3,
         properties: f.properties,
       };
     });
@@ -912,8 +1200,11 @@ function SceneContent({
           scaleZ(res.head) + RESERVOIR_Z_BOOST - RESERVOIR_THICKNESS / 2
         : null;
 
+      // Use ORIGINAL polygon bounds for riser detection so only
+      // elements at the reservoir boundary get risers, not everything
+      // under the expanded visual box (e.g. sluice gates, branch nodes).
       const isInside = (x, y) =>
-        x >= res.eMinX && x <= res.eMaxX && y >= res.eMinY && y <= res.eMaxY;
+        x >= res.oMinX && x <= res.oMaxX && y >= res.oMinY && y <= res.oMaxY;
 
       // Check valve positions
       for (const v of valveElements) {
@@ -967,96 +1258,10 @@ function SceneContent({
     return risers;
   }, [reservoirElements, valveElements, pipeElements]);
 
-  /* ── Render popup HTML overlay ── */
-  const renderPopup = () => {
-    if (!popup) return null;
-    const { type, position, properties, name } = popup;
-    let content;
-    switch (type) {
-      case "node":
-        content = <NodePopup properties={properties} results={r} />;
-        break;
-      case "pipe":
-        content = <PipePopup properties={properties} results={r} />;
-        break;
-      case "valve":
-        content = (
-          <ValvePopup
-            properties={properties}
-            results={r}
-            overrides={valveOverrides?.[name]}
-            onOverrideChange={(o) => onValveOverrideChange?.(name, o)}
-          />
-        );
-        break;
-      case "reservoir":
-        content = (
-          <ReservoirPopup
-            properties={properties}
-            results={r}
-            elevOverride={elevOverrides?.[name]}
-            onElevChange={(elev) => onElevOverrideChange?.(name, elev)}
-          />
-        );
-        break;
-      case "overflow":
-        content = (
-          <OverflowPopup
-            properties={properties}
-            results={r}
-            elevOverride={elevOverrides?.[name]}
-            onElevChange={(elev) => onElevOverrideChange?.(name, elev)}
-          />
-        );
-        break;
-      default:
-        return null;
-    }
-    return (
-      <Html
-        position={position}
-        zIndexRange={[1000, 0]}
-        style={{
-          transform:
-            popup.openBelow ? "translate(-50%, 0)" : "translate(-50%, -100%)",
-          marginTop: popup.openBelow ? "12px" : "-12px",
-          pointerEvents: "auto",
-        }}
-      >
-        <div
-          ref={popupRef}
-          className="three-d-popup-wrapper"
-          onClick={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
-          onPointerMove={(e) => e.stopPropagation()}
-          onPointerUp={(e) => e.stopPropagation()}
-          onWheel={(e) => e.stopPropagation()}
-          onTouchStart={(e) => e.stopPropagation()}
-          onTouchMove={(e) => e.stopPropagation()}
-          onTouchEnd={(e) => e.stopPropagation()}
-        >
-          <button
-            className="three-d-popup-close"
-            onClick={() => setPopup(null)}
-          >
-            ×
-          </button>
-          {content}
-        </div>
-      </Html>
-    );
-  };
-
   /* ── Click helpers ── */
-  const openPopup = (type, name, properties, position) => (e) => {
+  const openPopup = (type, name, properties) => (e) => {
     e.stopPropagation();
-    // Project 3D position to screen Y to decide popup direction
-    const vec = new THREE.Vector3(...position);
-    vec.project(camera);
-    const screenY = ((1 - vec.y) / 2) * size.height;
-    const openBelow = screenY < size.height * 0.35;
-    setPopup({ type, name, properties, position, openBelow });
+    setPopup({ type, name, properties });
   };
 
   /* ── Valve color logic (matches 2D) ── */
@@ -1094,6 +1299,7 @@ function SceneContent({
       <directionalLight position={[-5, 10, 10]} intensity={0.3} />
 
       <GroundGrid />
+      <ZAxisOverlay visible={isSideFaceOn} controlsRef={controlsRef} />
 
       {/* ═══ ELEVATION OVERLAY ═══ */}
       {elevOpacity > 0 && (
@@ -1375,9 +1581,6 @@ function SceneContent({
         </group>
       )}
 
-      {/* Popup overlay */}
-      {renderPopup()}
-
       <OrbitControls
         ref={controlsRef}
         makeDefault
@@ -1417,6 +1620,7 @@ function SceneContent({
       <FaceOnDetector
         controlsRef={controlsRef}
         onFaceOnChange={onFaceOnChange}
+        onSideFaceOnChange={onSideFaceOnChange}
       />
     </>
   );
@@ -1434,8 +1638,81 @@ export default function SchematicPanel3D({
   layerVis,
 }) {
   const [isFaceOn, setIsFaceOn] = useState(false);
+  const [isSideFaceOn, setIsSideFaceOn] = useState(false);
   const [elevOpacity, setElevOpacity] = useState(1);
   const [headOpacity, setHeadOpacity] = useState(0.6);
+  const [popup, setPopup] = useState(null);
+  const popupRef = useRef(null);
+
+  /* ── Close modal on ESC ── */
+  useEffect(() => {
+    if (!popup) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") setPopup(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [popup]);
+
+  /* ── Close modal on outside click ── */
+  useEffect(() => {
+    if (!popup) return;
+    const onDown = (e) => {
+      if (popupRef.current && !popupRef.current.contains(e.target)) {
+        setPopup(null);
+      }
+    };
+    window.addEventListener("mousedown", onDown);
+    return () => window.removeEventListener("mousedown", onDown);
+  }, [popup]);
+
+  /* ── Build popup content ── */
+  const popupContent = useMemo(() => {
+    if (!popup) return null;
+    const { type, name, properties } = popup;
+    switch (type) {
+      case "node":
+        return <NodePopup properties={properties} results={hydraulicResults} />;
+      case "pipe":
+        return <PipePopup properties={properties} results={hydraulicResults} />;
+      case "valve":
+        return (
+          <ValvePopup
+            properties={properties}
+            results={hydraulicResults}
+            overrides={valveOverrides?.[name]}
+            onOverrideChange={(o) => onValveOverrideChange?.(name, o)}
+          />
+        );
+      case "reservoir":
+        return (
+          <ReservoirPopup
+            properties={properties}
+            results={hydraulicResults}
+            elevOverride={elevOverrides?.[name]}
+            onElevChange={(elev) => onElevOverrideChange?.(name, elev)}
+          />
+        );
+      case "overflow":
+        return (
+          <OverflowPopup
+            properties={properties}
+            results={hydraulicResults}
+            elevOverride={elevOverrides?.[name]}
+            onElevChange={(elev) => onElevOverrideChange?.(name, elev)}
+          />
+        );
+      default:
+        return null;
+    }
+  }, [
+    popup,
+    hydraulicResults,
+    valveOverrides,
+    elevOverrides,
+    onValveOverrideChange,
+    onElevOverrideChange,
+  ]);
 
   return (
     <div className="three-d-container">
@@ -1457,6 +1734,10 @@ export default function SchematicPanel3D({
           headOpacity={headOpacity}
           layerVis={layerVis}
           onFaceOnChange={setIsFaceOn}
+          onSideFaceOnChange={setIsSideFaceOn}
+          isSideFaceOn={isSideFaceOn}
+          popup={popup}
+          setPopup={setPopup}
         />
       </Canvas>
 
@@ -1516,6 +1797,26 @@ export default function SchematicPanel3D({
           </span>
         </div>
       </div>
+
+      {/* ── Popup modal overlay ── */}
+      {popup && popupContent && (
+        <div className="three-d-modal-backdrop">
+          <div
+            ref={popupRef}
+            className="three-d-popup-wrapper"
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <button
+              className="three-d-popup-close"
+              onClick={() => setPopup(null)}
+            >
+              ×
+            </button>
+            {popupContent}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
